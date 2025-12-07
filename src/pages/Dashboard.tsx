@@ -134,18 +134,18 @@ export default function Dashboard() {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Tv className="w-5 h-5 text-primary" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-magenta to-primary flex items-center justify-center shadow-lg shadow-magenta/30">
+              <Tv className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-display font-bold text-foreground">
-                Jovitools Streamings
+              <h1 className="text-xl font-display font-bold bg-gradient-to-r from-cyan to-primary bg-clip-text text-transparent">
+                Painel de Controle
               </h1>
-              {userProfile && (
-                <p className="text-xs text-muted-foreground">
-                  Olá, {userProfile.name || userProfile.email}
-                </p>
-              )}
+              <p className="text-sm text-muted-foreground">
+                {userProfile 
+                  ? `Olá, ${userProfile.name || userProfile.email}` 
+                  : 'Vamos criar algo incrível juntos'}
+              </p>
             </div>
           </div>
           <Button 
