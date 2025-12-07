@@ -31,7 +31,7 @@ const CATEGORY_CONFIG: Record<PlatformCategory, {
     color: 'from-blue-500 to-cyan-500'
   },
   'bonus_courses': {
-    label: 'Bônus: Cursos',
+    label: 'BÔNUS: CURSOS',
     icon: '🎓',
     color: 'from-green-500 to-emerald-500'
   }
