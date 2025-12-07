@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Users, UserCheck, UserX, Settings, CheckSquare, Clock, Calendar, Infinity, PlusCircle, MinusCircle } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Users, UserCheck, UserX, Settings, CheckSquare, Clock, Calendar, Infinity, PlusCircle, MinusCircle, Megaphone, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 type StreamingStatus = 'online' | 'maintenance';
 type AccessType = 'credentials' | 'link_only';
@@ -53,6 +54,15 @@ interface UserPlatformAccess {
   platform_id: string;
 }
 
+interface News {
+  id: string;
+  title: string;
+  content: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // Access duration options
 const ACCESS_DURATION_OPTIONS = [
   { label: '2 dias', days: 2 },
@@ -70,6 +80,7 @@ export default function Admin() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [userPlatformAccess, setUserPlatformAccess] = useState<UserPlatformAccess[]>([]);
+  const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   
@@ -94,6 +105,13 @@ export default function Admin() {
   const [selectedDuration, setSelectedDuration] = useState<number | null>(30);
   const [customDays, setCustomDays] = useState<string>('');
   const [savingPermissions, setSavingPermissions] = useState(false);
+
+  // News Dialog
+  const [newsDialogOpen, setNewsDialogOpen] = useState(false);
+  const [editingNews, setEditingNews] = useState<News | null>(null);
+  const [newsTitle, setNewsTitle] = useState('');
+  const [newsContent, setNewsContent] = useState('');
+  const [newsIsActive, setNewsIsActive] = useState(true);
   
   const { user, isAdmin, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -117,15 +135,17 @@ export default function Admin() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [platformsRes, usersRes, accessRes] = await Promise.all([
+    const [platformsRes, usersRes, accessRes, newsRes] = await Promise.all([
       supabase.from('streaming_platforms').select('*').order('name'),
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('user_platform_access').select('*'),
+      supabase.from('news').select('*').order('created_at', { ascending: false }),
     ]);
 
     if (platformsRes.data) setPlatforms(platformsRes.data as Platform[]);
     if (usersRes.data) setUsers(usersRes.data as UserProfile[]);
     if (accessRes.data) setUserPlatformAccess(accessRes.data as UserPlatformAccess[]);
+    if (newsRes.data) setNews(newsRes.data as News[]);
     setLoading(false);
   };
 
@@ -465,6 +485,85 @@ export default function Admin() {
     setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  // News CRUD
+  const openNewsDialog = (newsItem?: News) => {
+    if (newsItem) {
+      setEditingNews(newsItem);
+      setNewsTitle(newsItem.title);
+      setNewsContent(newsItem.content);
+      setNewsIsActive(newsItem.is_active);
+    } else {
+      setEditingNews(null);
+      setNewsTitle('');
+      setNewsContent('');
+      setNewsIsActive(true);
+    }
+    setNewsDialogOpen(true);
+  };
+
+  const saveNews = async () => {
+    if (!newsTitle.trim() || !newsContent.trim()) {
+      toast({ title: 'Erro', description: 'Título e conteúdo são obrigatórios', variant: 'destructive' });
+      return;
+    }
+
+    const newsData = {
+      title: newsTitle.trim(),
+      content: newsContent.trim(),
+      is_active: newsIsActive,
+    };
+
+    if (editingNews) {
+      const { error } = await supabase
+        .from('news')
+        .update(newsData)
+        .eq('id', editingNews.id);
+      
+      if (error) {
+        toast({ title: 'Erro', description: 'Falha ao atualizar notícia', variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Sucesso', description: 'Notícia atualizada' });
+    } else {
+      const { error } = await supabase
+        .from('news')
+        .insert(newsData);
+      
+      if (error) {
+        toast({ title: 'Erro', description: 'Falha ao criar notícia', variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Sucesso', description: 'Notícia criada' });
+    }
+
+    setNewsDialogOpen(false);
+    fetchData();
+  };
+
+  const deleteNews = async (id: string) => {
+    const { error } = await supabase.from('news').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro', description: 'Falha ao deletar notícia', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Sucesso', description: 'Notícia deletada' });
+    fetchData();
+  };
+
+  const toggleNewsActive = async (newsItem: News) => {
+    const { error } = await supabase
+      .from('news')
+      .update({ is_active: !newsItem.is_active })
+      .eq('id', newsItem.id);
+    
+    if (error) {
+      toast({ title: 'Erro', description: 'Falha ao alterar status', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Sucesso', description: newsItem.is_active ? 'Notícia desativada' : 'Notícia ativada' });
+    fetchData();
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -515,6 +614,10 @@ export default function Admin() {
             <TabsTrigger value="users" className="gap-2">
               <Users className="w-4 h-4" />
               Usuários ({users.length})
+            </TabsTrigger>
+            <TabsTrigger value="news" className="gap-2">
+              <Megaphone className="w-4 h-4" />
+              Notícias ({news.length})
             </TabsTrigger>
           </TabsList>
 
@@ -872,6 +975,96 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* News Tab */}
+          <TabsContent value="news">
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-foreground">Gerenciar Notícias</CardTitle>
+                <Button onClick={() => openNewsDialog()} size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Notícia
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Título</TableHead>
+                        <TableHead>Conteúdo</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Criado em</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {news.map((newsItem) => (
+                        <TableRow key={newsItem.id}>
+                          <TableCell className="font-medium max-w-[200px] truncate">
+                            {newsItem.title}
+                          </TableCell>
+                          <TableCell className="max-w-[300px] truncate text-muted-foreground">
+                            {newsItem.content}
+                          </TableCell>
+                          <TableCell>
+                            <button
+                              onClick={() => toggleNewsActive(newsItem)}
+                              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
+                                newsItem.is_active
+                                  ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
+                                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                              }`}
+                            >
+                              {newsItem.is_active ? (
+                                <>
+                                  <ToggleRight className="w-3 h-3" />
+                                  Ativo
+                                </>
+                              ) : (
+                                <>
+                                  <ToggleLeft className="w-3 h-3" />
+                                  Inativo
+                                </>
+                              )}
+                            </button>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(newsItem.created_at).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => openNewsDialog(newsItem)}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={() => deleteNews(newsItem.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {news.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            Nenhuma notícia criada
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -1192,6 +1385,61 @@ export default function Admin() {
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}
               Salvar Permissões
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* News Dialog */}
+      <Dialog open={newsDialogOpen} onOpenChange={setNewsDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              {editingNews ? 'Editar Notícia' : 'Nova Notícia'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="news-title">Título *</Label>
+              <Input
+                id="news-title"
+                value={newsTitle}
+                onChange={(e) => setNewsTitle(e.target.value)}
+                placeholder="Ex: Manutenção programada..."
+                className="bg-background/50 border-border"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="news-content">Conteúdo *</Label>
+              <Textarea
+                id="news-content"
+                value={newsContent}
+                onChange={(e) => setNewsContent(e.target.value)}
+                placeholder="Descreva os detalhes do aviso..."
+                className="bg-background/50 border-border min-h-[120px]"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="news-active" className="cursor-pointer">Publicar imediatamente</Label>
+              <button
+                type="button"
+                onClick={() => setNewsIsActive(!newsIsActive)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  newsIsActive ? 'bg-primary' : 'bg-muted'
+                }`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                  newsIsActive ? 'translate-x-5' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewsDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={saveNews}>
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
