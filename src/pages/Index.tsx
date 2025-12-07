@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import HeroSection from "@/components/HeroSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import ToolsSection from "@/components/ToolsSection";
@@ -5,9 +6,11 @@ import PricingSection from "@/components/PricingSection";
 import FAQSection from "@/components/FAQSection";
 
 const Index = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      <HeroSection />
+      <HeroSection onAccessClick={() => navigate('/login')} />
       <FeaturesSection />
       <ToolsSection />
       <PricingSection />

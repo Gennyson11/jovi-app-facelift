@@ -2,7 +2,11 @@ import { Play, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-hacker.jpg";
 
-const HeroSection = () => {
+interface HeroSectionProps {
+  onAccessClick?: () => void;
+}
+
+const HeroSection = ({ onAccessClick }: HeroSectionProps) => {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center px-4 py-20 overflow-hidden">
       {/* Background gradient overlay */}
@@ -68,7 +72,7 @@ const HeroSection = () => {
         </p>
 
         {/* CTA Button with arrow */}
-        <Button variant="hero" size="xl" className="px-12 group">
+        <Button variant="hero" size="xl" className="px-12 group" onClick={onAccessClick}>
           Acessar Plataforma
           <ChevronRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
         </Button>
