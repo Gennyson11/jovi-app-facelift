@@ -92,8 +92,9 @@ export default function Dashboard() {
     toast
   } = useToast();
 
-  // Track user presence for real-time monitoring
-  usePresence(user?.id, user?.email, userProfile?.name);
+  // Track user presence for real-time monitoring - use email as fallback for name
+  const presenceName = userProfile?.name || user?.email?.split('@')[0] || null;
+  usePresence(user?.id, user?.email, presenceName);
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login');
