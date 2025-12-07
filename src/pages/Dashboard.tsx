@@ -120,6 +120,19 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
+        {/* Warning Banner */}
+        <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-sm">
+          <p className="text-destructive font-medium">
+            ⚠️ ATENÇÃO: É proibido revender ou compartilhar este acesso.
+          </p>
+          <p className="text-destructive/80 mt-1">
+            🔍 Todos os acessos são monitorados e o IP é rastreável.
+          </p>
+          <p className="text-destructive/80 mt-1">
+            ❌ Qualquer compartilhamento resultará na perda imediata do acesso.
+          </p>
+        </div>
+
         <div className="mb-8">
           <h2 className="text-2xl font-display font-bold text-foreground mb-2">
             Plataformas de Streaming
