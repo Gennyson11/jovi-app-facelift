@@ -743,15 +743,27 @@ export default function Admin() {
                           <TableCell>
                             {userProfile.has_access && userProfile.access_expires_at !== null && (
                               <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                                  onClick={() => modifyUserDays(userProfile, -7)}
-                                  title="Remover 7 dias"
-                                >
-                                  <MinusCircle className="w-4 h-4" />
-                                </Button>
+                                {/* Remove days buttons */}
+                                <div className="flex flex-col gap-0.5">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                    onClick={() => modifyUserDays(userProfile, -7)}
+                                  >
+                                    -7d
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                    onClick={() => modifyUserDays(userProfile, -30)}
+                                  >
+                                    -30d
+                                  </Button>
+                                </div>
+                                
+                                {/* Add days buttons */}
                                 <div className="flex flex-col gap-0.5">
                                   <Button
                                     variant="ghost"
@@ -770,15 +782,28 @@ export default function Admin() {
                                     +30d
                                   </Button>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-green-500 hover:text-green-600 hover:bg-green-500/10"
-                                  onClick={() => modifyUserDays(userProfile, 90)}
-                                  title="Adicionar 90 dias"
-                                >
-                                  <PlusCircle className="w-4 h-4" />
-                                </Button>
+                                
+                                {/* Quick add/remove icons */}
+                                <div className="flex flex-col gap-0.5 ml-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                                    onClick={() => modifyUserDays(userProfile, 90)}
+                                    title="Adicionar 90 dias"
+                                  >
+                                    <PlusCircle className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                    onClick={() => modifyUserDays(userProfile, -90)}
+                                    title="Remover 90 dias"
+                                  >
+                                    <MinusCircle className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
                               </div>
                             )}
                             {userProfile.access_expires_at === null && userProfile.has_access && (
