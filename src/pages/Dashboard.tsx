@@ -12,7 +12,7 @@ type AccessType = 'credentials' | 'link_only';
 type PlatformCategory = 'ai_tools' | 'streamings' | 'software' | 'bonus_courses';
 
 const CATEGORY_CONFIG: Record<PlatformCategory, { label: string; icon: string; color: string }> = {
-  'ai_tools': { label: 'Ferramentas IAs & Variadas', icon: '🤖', color: 'from-purple-500 to-pink-500' },
+  'ai_tools': { label: 'FERRAMENTAS IAs & VARIADAS', icon: '🤖', color: 'from-purple-500 to-pink-500' },
   'streamings': { label: 'Streamings', icon: '📺', color: 'from-red-500 to-orange-500' },
   'software': { label: 'Software', icon: '💻', color: 'from-blue-500 to-cyan-500' },
   'bonus_courses': { label: 'Bônus: Cursos', icon: '🎓', color: 'from-green-500 to-emerald-500' },
