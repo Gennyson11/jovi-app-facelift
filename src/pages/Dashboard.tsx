@@ -92,7 +92,7 @@ export default function Dashboard() {
   } = useToast();
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/auth');
+      navigate('/login');
     }
   }, [user, authLoading, navigate]);
   useEffect(() => {
@@ -133,7 +133,7 @@ export default function Dashboard() {
   const visibleNews = news.filter(n => !dismissedNews.includes(n.id));
   const handleLogout = async () => {
     await signOut();
-    navigate('/auth');
+    navigate('/login');
   };
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
