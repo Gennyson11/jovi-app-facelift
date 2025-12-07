@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useOnlineUsers } from '@/hooks/usePresence';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Users, UserCheck, UserX, Settings, CheckSquare, Clock, Calendar, Infinity, PlusCircle, MinusCircle, Megaphone, ToggleLeft, ToggleRight } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Users, UserCheck, UserX, Settings, CheckSquare, Clock, Calendar, Infinity, PlusCircle, MinusCircle, Megaphone, ToggleLeft, ToggleRight, Wifi, WifiOff } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
 type StreamingStatus = 'online' | 'maintenance';
@@ -116,6 +117,7 @@ export default function Admin() {
   const { user, isAdmin, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { onlineUsers, onlineCount } = useOnlineUsers();
 
   useEffect(() => {
     if (!authLoading) {
@@ -615,6 +617,10 @@ export default function Admin() {
               <Users className="w-4 h-4" />
               Usuários ({users.length})
             </TabsTrigger>
+            <TabsTrigger value="online" className="gap-2">
+              <Wifi className="w-4 h-4" />
+              Online ({onlineCount})
+            </TabsTrigger>
             <TabsTrigger value="news" className="gap-2">
               <Megaphone className="w-4 h-4" />
               Notícias ({news.length})
@@ -972,6 +978,92 @@ export default function Admin() {
                     </TableBody>
                   </Table>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Online Users Tab */}
+          <TabsContent value="online">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <Card className="border-border">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center animate-pulse">
+                      <Wifi className="w-7 h-7 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-green-500">{onlineCount}</p>
+                      <p className="text-sm text-muted-foreground">Usuários Online Agora</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="w-7 h-7 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-3xl font-bold text-foreground">{users.length}</p>
+                      <p className="text-sm text-muted-foreground">Total Registrados</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <Wifi className="w-5 h-5 text-green-500" />
+                  Usuários Conectados em Tempo Real
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {onlineCount === 0 ? (
+                  <div className="text-center py-12">
+                    <WifiOff className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg text-muted-foreground">Nenhum usuário online no momento</p>
+                    <p className="text-sm text-muted-foreground/60 mt-1">Os usuários aparecerão aqui quando acessarem o painel</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Conectado desde</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {onlineUsers.map((onlineUser) => (
+                          <TableRow key={onlineUser.user_id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                                <span className="text-green-500 text-sm font-medium">Online</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">{onlineUser.user_name}</TableCell>
+                            <TableCell className="text-muted-foreground">{onlineUser.user_email}</TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {new Date(onlineUser.online_at).toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
