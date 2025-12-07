@@ -146,62 +146,73 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {platforms.map((platform) => {
             const hasCredential = !!getCredentialForPlatform(platform.id);
             const isMaintenance = platform.status === 'maintenance';
             
             return (
-              <Card 
+              <div 
                 key={platform.id}
-                className={`cursor-pointer transition-all duration-200 border-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 relative overflow-hidden ${
-                  !hasCredential || isMaintenance ? 'opacity-70' : ''
+                className={`group cursor-pointer transition-all duration-300 ${
+                  !hasCredential || isMaintenance ? 'opacity-60' : ''
                 }`}
                 onClick={() => hasCredential && !isMaintenance && setSelectedPlatform(platform)}
               >
-                {/* Status Badge */}
-                <div className={`absolute top-2 right-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                  platform.status === 'online' 
-                    ? 'bg-green-500/20 text-green-400' 
-                    : 'bg-yellow-500/20 text-yellow-400'
-                }`}>
-                  {platform.status === 'online' ? (
-                    <CheckCircle className="w-3 h-3" />
-                  ) : (
-                    <AlertTriangle className="w-3 h-3" />
-                  )}
-                  {platform.status === 'online' ? 'Online' : 'Manutenção'}
-                </div>
-
-                <CardHeader className="pb-2">
-                  {platform.cover_image_url ? (
-                    <div className="w-full h-20 mb-2 rounded-md overflow-hidden">
+                {/* Card Container */}
+                <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300">
+                  {/* Cover Image Area */}
+                  <div className="relative aspect-video bg-gradient-to-br from-secondary to-background">
+                    {platform.cover_image_url ? (
                       <img 
                         src={platform.cover_image_url} 
                         alt={platform.name}
                         className="w-full h-full object-cover"
                       />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-6xl">{platformIcons[platform.name] || '📺'}</span>
+                      </div>
+                    )}
+                    
+                    {/* Status Badge */}
+                    <div className={`absolute top-3 right-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm ${
+                      platform.status === 'online' 
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                        : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                    }`}>
+                      {platform.status === 'online' ? (
+                        <CheckCircle className="w-3.5 h-3.5" />
+                      ) : (
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                      )}
+                      {platform.status === 'online' ? 'Online' : 'Manutenção'}
                     </div>
-                  ) : (
-                    <div className="text-4xl mb-2">
-                      {platformIcons[platform.name] || '📺'}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="p-4 flex items-center justify-between border-t border-border/50">
+                    <div>
+                      <h3 className="font-display font-bold text-foreground uppercase tracking-wide">
+                        {platform.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {isMaintenance 
+                          ? 'Em manutenção' 
+                          : hasCredential 
+                            ? 'Clique para ver credencial' 
+                            : 'Sem credencial'
+                        }
+                      </p>
                     </div>
-                  )}
-                  <CardTitle className="text-lg text-foreground">
-                    {platform.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {isMaintenance 
-                      ? 'Em manutenção' 
-                      : hasCredential 
-                        ? 'Credencial disponível' 
-                        : 'Sem credencial'
-                    }
-                  </p>
-                </CardContent>
-              </Card>
+                    {hasCredential && !isMaintenance && (
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                        <Eye className="w-5 h-5 text-primary" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             );
           })}
         </div>
