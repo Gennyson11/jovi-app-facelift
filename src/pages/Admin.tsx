@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Users, UserCheck, UserX, Settings, CheckSquare } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Users, UserCheck, UserX, Settings, CheckSquare, Clock, Calendar, Infinity } from 'lucide-react';
 
 type StreamingStatus = 'online' | 'maintenance';
 type AccessType = 'credentials' | 'link_only';
@@ -35,6 +35,7 @@ interface UserProfile {
   name: string | null;
   has_access: boolean;
   created_at: string;
+  access_expires_at: string | null;
 }
 
 interface UserPlatformAccess {
@@ -42,6 +43,19 @@ interface UserPlatformAccess {
   user_id: string;
   platform_id: string;
 }
+
+// Access duration options
+const ACCESS_DURATION_OPTIONS = [
+  { label: '2 dias', days: 2 },
+  { label: '3 dias', days: 3 },
+  { label: '7 dias', days: 7 },
+  { label: '15 dias', days: 15 },
+  { label: '30 dias', days: 30 },
+  { label: '90 dias', days: 90 },
+  { label: '180 dias', days: 180 },
+  { label: '1 ano', days: 365 },
+  { label: 'Vitalício', days: null },
+];
 
 export default function Admin() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -67,6 +81,8 @@ export default function Admin() {
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedDuration, setSelectedDuration] = useState<number | null>(30);
+  const [customDays, setCustomDays] = useState<string>('');
   const [savingPermissions, setSavingPermissions] = useState(false);
   
   const { user, isAdmin, signOut, loading: authLoading } = useAuth();
@@ -134,6 +150,17 @@ export default function Admin() {
       .filter(a => a.user_id === userProfile.id)
       .map(a => a.platform_id);
     setSelectedPlatforms(userAccess);
+    
+    // Set current duration based on expiration
+    if (userProfile.access_expires_at === null) {
+      setSelectedDuration(null); // Lifetime
+    } else {
+      const expiresAt = new Date(userProfile.access_expires_at);
+      const now = new Date();
+      const daysRemaining = Math.max(0, Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      setSelectedDuration(daysRemaining);
+    }
+    setCustomDays('');
     setPermissionsDialogOpen(true);
   };
 
@@ -170,6 +197,16 @@ export default function Admin() {
     const toAdd = selectedPlatforms.filter(id => !currentPlatformIds.includes(id));
     // Platforms to remove
     const toRemove = currentPlatformIds.filter(id => !selectedPlatforms.includes(id));
+
+    // Calculate expiration date
+    let accessExpiresAt: string | null = null;
+    const daysToAdd = customDays ? parseInt(customDays) : selectedDuration;
+    
+    if (daysToAdd !== null && daysToAdd > 0) {
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + daysToAdd);
+      accessExpiresAt = expirationDate.toISOString();
+    }
     
     try {
       // Remove access
@@ -197,14 +234,18 @@ export default function Admin() {
         if (insertError) throw insertError;
       }
       
-      // Also update has_access based on whether user has any platforms
+      // Update has_access and expiration date
       const hasAnyAccess = selectedPlatforms.length > 0;
       await supabase
         .from('profiles')
-        .update({ has_access: hasAnyAccess })
+        .update({ 
+          has_access: hasAnyAccess,
+          access_expires_at: hasAnyAccess ? accessExpiresAt : null
+        })
         .eq('id', selectedUser.id);
       
-      toast({ title: 'Sucesso', description: 'Permissões atualizadas' });
+      const durationLabel = daysToAdd === null ? 'Vitalício' : `${daysToAdd} dias`;
+      toast({ title: 'Sucesso', description: `Permissões atualizadas (${durationLabel})` });
       setPermissionsDialogOpen(false);
       fetchData();
     } catch (error) {
@@ -212,6 +253,29 @@ export default function Admin() {
     } finally {
       setSavingPermissions(false);
     }
+  };
+
+  // Get access status text
+  const getAccessStatusText = (userProfile: UserProfile) => {
+    if (!userProfile.has_access) return { text: 'Bloqueado', color: 'bg-red-500/10 text-red-500', icon: UserX };
+    
+    if (userProfile.access_expires_at === null) {
+      return { text: 'Vitalício', color: 'bg-purple-500/10 text-purple-400', icon: Infinity };
+    }
+    
+    const expiresAt = new Date(userProfile.access_expires_at);
+    const now = new Date();
+    const daysRemaining = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysRemaining <= 0) {
+      return { text: 'Expirado', color: 'bg-red-500/10 text-red-500', icon: Clock };
+    }
+    
+    if (daysRemaining <= 7) {
+      return { text: `${daysRemaining}d restantes`, color: 'bg-yellow-500/10 text-yellow-500', icon: Clock };
+    }
+    
+    return { text: `${daysRemaining}d restantes`, color: 'bg-green-500/10 text-green-500', icon: Calendar };
   };
 
   // Get number of platforms user has access to
@@ -614,23 +678,16 @@ export default function Admin() {
                             </span>
                           </TableCell>
                           <TableCell>
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                              userProfile.has_access 
-                                ? 'bg-green-500/10 text-green-500' 
-                                : 'bg-red-500/10 text-red-500'
-                            }`}>
-                              {userProfile.has_access ? (
-                                <>
-                                  <UserCheck className="w-3 h-3" />
-                                  Liberado
-                                </>
-                              ) : (
-                                <>
-                                  <UserX className="w-3 h-3" />
-                                  Bloqueado
-                                </>
-                              )}
-                            </span>
+                            {(() => {
+                              const status = getAccessStatusText(userProfile);
+                              const StatusIcon = status.icon;
+                              return (
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${status.color}`}>
+                                  <StatusIcon className="w-3 h-3" />
+                                  {status.text}
+                                </span>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
@@ -851,6 +908,55 @@ export default function Admin() {
             )}
           </DialogHeader>
           <div className="space-y-4">
+            {/* Duration Selection */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Duração do Acesso
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                {ACCESS_DURATION_OPTIONS.map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDuration(option.days);
+                      setCustomDays('');
+                    }}
+                    className={`p-2 rounded-lg border text-sm font-medium transition-all ${
+                      selectedDuration === option.days && !customDays
+                        ? option.days === null
+                          ? 'border-purple-500 bg-purple-500/10 text-purple-400'
+                          : 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background/50 text-muted-foreground hover:border-primary/50'
+                    }`}
+                  >
+                    {option.days === null && <Infinity className="w-3 h-3 inline mr-1" />}
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              
+              {/* Custom Days Input */}
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  placeholder="Dias personalizados"
+                  value={customDays}
+                  onChange={(e) => {
+                    setCustomDays(e.target.value);
+                    if (e.target.value) {
+                      setSelectedDuration(parseInt(e.target.value));
+                    }
+                  }}
+                  min="1"
+                  max="9999"
+                  className="bg-background/50 border-border"
+                />
+                <span className="text-sm text-muted-foreground whitespace-nowrap">dias</span>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Selecione as streamings que o usuário poderá acessar
@@ -874,7 +980,7 @@ export default function Admin() {
               </div>
             </div>
             
-            <div className="border border-border rounded-lg divide-y divide-border max-h-[400px] overflow-y-auto">
+            <div className="border border-border rounded-lg divide-y divide-border max-h-[300px] overflow-y-auto">
               {platforms.map((platform) => (
                 <label
                   key={platform.id}
@@ -916,6 +1022,11 @@ export default function Admin() {
             
             <p className="text-sm text-muted-foreground text-center">
               {selectedPlatforms.length} de {platforms.length} streamings selecionadas
+              {(customDays || selectedDuration !== null) && (
+                <span className="ml-2">
+                  • {customDays ? `${customDays} dias` : selectedDuration === null ? 'Vitalício' : `${selectedDuration} dias`}
+                </span>
+              )}
             </p>
           </div>
           <DialogFooter>

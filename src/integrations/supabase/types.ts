@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          access_expires_at: string | null
           created_at: string
           email: string
           has_access: boolean
@@ -25,6 +26,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          access_expires_at?: string | null
           created_at?: string
           email: string
           has_access?: boolean
@@ -34,6 +36,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          access_expires_at?: string | null
           created_at?: string
           email?: string
           has_access?: boolean

@@ -28,6 +28,7 @@ interface UserProfile {
   email: string;
   name: string | null;
   has_access: boolean;
+  access_expires_at: string | null;
 }
 
 const platformIcons: Record<string, string> = {
@@ -110,9 +111,20 @@ export default function Dashboard() {
     });
   };
 
+  // Check if user's access has expired
+  const isAccessExpired = () => {
+    if (!userProfile) return true;
+    if (!userProfile.has_access) return true;
+    if (userProfile.access_expires_at === null) return false; // Lifetime access
+    
+    const expiresAt = new Date(userProfile.access_expires_at);
+    return expiresAt < new Date();
+  };
+
   // Check if user has access to a specific platform
   const hasPlatformSpecificAccess = (platformId: string) => {
     if (isAdmin) return true;
+    if (isAccessExpired()) return false;
     return userPlatformAccess.includes(platformId);
   };
 
@@ -145,7 +157,22 @@ export default function Dashboard() {
     );
   }
 
-  const hasAccess = isAdmin || userProfile?.has_access;
+  const hasAccess = isAdmin || (userProfile?.has_access && !isAccessExpired());
+  const accessExpired = userProfile?.has_access && isAccessExpired();
+
+  // Get remaining days text
+  const getRemainingDaysText = () => {
+    if (!userProfile || !userProfile.has_access) return null;
+    if (userProfile.access_expires_at === null) return 'Acesso Vitalício';
+    
+    const expiresAt = new Date(userProfile.access_expires_at);
+    const now = new Date();
+    const daysRemaining = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysRemaining <= 0) return 'Acesso Expirado';
+    if (daysRemaining === 1) return '1 dia restante';
+    return `${daysRemaining} dias restantes`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -167,22 +194,52 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleLogout}
-            className="border-border hover:bg-destructive hover:text-destructive-foreground"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-3">
+            {hasAccess && getRemainingDaysText() && (
+              <span className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
+                userProfile?.access_expires_at === null
+                  ? 'bg-purple-500/10 text-purple-400'
+                  : 'bg-primary/10 text-primary'
+              }`}>
+                {getRemainingDaysText()}
+              </span>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleLogout}
+              className="border-border hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
+        {/* Access Expired Banner */}
+        {accessExpired && (
+          <div className="mb-6 p-6 rounded-lg bg-red-500/10 border border-red-500/30 text-center">
+            <Lock className="w-12 h-12 text-red-500 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-red-500 mb-2">
+              Acesso Expirado
+            </h3>
+            <p className="text-red-500/80 mb-4">
+              Seu período de acesso terminou. Renove para continuar acessando as plataformas.
+            </p>
+            <Button 
+              onClick={() => window.open('https://bit.ly/whatsapp-suportejt', '_blank')}
+              className="bg-green-500 hover:bg-green-600 text-white"
+            >
+              Renovar Acesso via WhatsApp
+            </Button>
+          </div>
+        )}
+
         {/* Access Blocked Banner */}
-        {!hasAccess && (
+        {!userProfile?.has_access && (
           <div className="mb-6 p-6 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-center">
             <Lock className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
             <h3 className="text-lg font-bold text-yellow-500 mb-2">
