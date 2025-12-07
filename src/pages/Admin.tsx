@@ -206,6 +206,33 @@ export default function Admin() {
     fetchData();
   };
 
+  // Delete user
+  const deleteUser = async (userId: string, userEmail: string) => {
+    const confirmed = window.confirm(`Tem certeza que deseja deletar o usuário "${userEmail}"? Esta ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    // First delete user platform access
+    await supabase.from('user_platform_access').delete().eq('user_id', userId);
+    
+    // Then delete the profile
+    const { error } = await supabase.from('profiles').delete().eq('id', userId);
+    
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao deletar usuário',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    toast({
+      title: 'Sucesso',
+      description: 'Usuário deletado com sucesso'
+    });
+    fetchData();
+  };
+
   // Open permissions dialog
   const openPermissionsDialog = (userProfile: UserProfile) => {
     setSelectedUser(userProfile);
@@ -932,6 +959,9 @@ export default function Admin() {
                                     <UserCheck className="w-4 h-4 mr-2" />
                                     Liberar
                                   </>}
+                              </Button>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => deleteUser(userProfile.id, userProfile.email)} title="Deletar usuário">
+                                <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
                           </TableCell>
