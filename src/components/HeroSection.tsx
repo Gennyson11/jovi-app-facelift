@@ -55,15 +55,15 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* Subtitle - Updated to match image */}
-        <h2 className="text-xl md:text-2xl font-semibold text-foreground mb-3">
-          Tenha <span className="text-primary">+115 ferramentas premium</span> de IA e Marketing Digital
-        </h2>
-        <p className="text-muted-foreground mb-4 max-w-2xl mx-auto">
-          Tenha +115 ferramentas premium de IA e Marketing Digital em um só acesso, pagando apenas R$29,99/mês Acesso imediato após a confirmação do pagamento<span className="text-accent font-semibold">R$29,99/mês</span>
+        {/* Subtitle */}
+        <p className="text-xl md:text-2xl text-foreground mb-2">
+          Tenha <span className="text-primary font-semibold">+70 ferramentas premium</span> de IA e Marketing Digital
         </p>
-        <p className="text-primary text-sm flex items-center justify-center gap-2 mb-8">
-          <span className="animate-pulse">✨</span>
+        <p className="text-lg md:text-xl text-foreground mb-4">
+          em um só acesso, pagando apenas <span className="text-primary font-semibold">R$37/mês</span>
+        </p>
+        <p className="text-muted-foreground text-sm flex items-center justify-center gap-2 mb-8">
+          <span className="text-primary animate-pulse">✨</span>
           Acesso imediato após a confirmação do pagamento
         </p>
 
