@@ -120,7 +120,7 @@ export default function Admin() {
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
-        navigate('/auth');
+        navigate('/login');
       } else if (!isAdmin) {
         navigate('/dashboard');
       }
@@ -151,7 +151,7 @@ export default function Admin() {
 
   const handleLogout = async () => {
     await signOut();
-    navigate('/auth');
+    navigate('/login');
   };
 
   // Toggle user access
