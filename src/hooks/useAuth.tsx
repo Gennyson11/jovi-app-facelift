@@ -44,49 +44,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let isMounted = true;
 
-    // Get initial session first
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      if (!isMounted) return;
-      
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (currentSession?.user) {
-        fetchUserRole(currentSession.user.id).then(userRole => {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+        
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          const userRole = await fetchUserRole(currentSession.user.id);
           if (isMounted) {
             setRole(userRole);
-            setLoading(false);
           }
-        });
-      } else {
-        setLoading(false);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    });
+    };
 
-    // Then set up listener for changes - only handle explicit sign in/out
+    initializeAuth();
+
+    // Set up listener for auth changes - only handle explicit sign in/out
+    // Ignore TOKEN_REFRESHED and INITIAL_SESSION to prevent page reloads
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         if (!isMounted) return;
         
-        // Only handle explicit auth changes, ignore TOKEN_REFRESHED and INITIAL_SESSION
+        // Only handle explicit auth changes
         if (event === 'SIGNED_IN') {
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
-          
-          if (newSession?.user) {
-            setTimeout(() => {
-              if (isMounted) {
-                fetchUserRole(newSession.user.id).then(userRole => {
-                  if (isMounted) setRole(userRole);
-                });
-              }
-            }, 0);
+          // Only update if user actually changed (new login)
+          if (newSession?.user?.id !== user?.id) {
+            setSession(newSession);
+            setUser(newSession?.user ?? null);
+            
+            if (newSession?.user) {
+              fetchUserRole(newSession.user.id).then(userRole => {
+                if (isMounted) setRole(userRole);
+              });
+            }
           }
         } else if (event === 'SIGNED_OUT') {
           setSession(null);
           setUser(null);
           setRole(null);
         }
+        // Explicitly ignore: TOKEN_REFRESHED, INITIAL_SESSION, PASSWORD_RECOVERY, USER_UPDATED
       }
     );
 
