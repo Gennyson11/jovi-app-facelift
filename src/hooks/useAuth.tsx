@@ -38,45 +38,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Prevent double initialization
+    // Prevent double initialization in StrictMode
     if (initializedRef.current) return;
     initializedRef.current = true;
 
+    let isMounted = true;
+
     // Get initial session first
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      if (!isMounted) return;
+      
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
         fetchUserRole(currentSession.user.id).then(userRole => {
-          setRole(userRole);
-          setLoading(false);
+          if (isMounted) {
+            setRole(userRole);
+            setLoading(false);
+          }
         });
       } else {
         setLoading(false);
       }
     });
 
-    // Then set up listener for changes
+    // Then set up listener for changes - only handle explicit sign in/out
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
-        // Only handle actual auth changes, not visibility/focus events
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        if (!isMounted) return;
+        
+        // Only handle explicit auth changes, ignore TOKEN_REFRESHED and INITIAL_SESSION
+        if (event === 'SIGNED_IN') {
           setSession(newSession);
           setUser(newSession?.user ?? null);
           
           if (newSession?.user) {
             setTimeout(() => {
-              fetchUserRole(newSession.user.id).then(setRole);
+              if (isMounted) {
+                fetchUserRole(newSession.user.id).then(userRole => {
+                  if (isMounted) setRole(userRole);
+                });
+              }
             }, 0);
-          } else {
-            setRole(null);
           }
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+          setRole(null);
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
