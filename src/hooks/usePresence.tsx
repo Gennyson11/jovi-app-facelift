@@ -2,17 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
-export interface OnlineUser {
-  odgovor: string;
-  odgovor_id: string;
-  odgovor_email: string;
-  odgovor_name: string | null;
-  online_at: string;
-}
-
-interface PresenceState {
-  [key: string]: OnlineUser[];
-}
+const PRESENCE_CHANNEL_NAME = 'jovitools-online-users';
 
 export function usePresence(userId: string | undefined, userEmail: string | undefined, userName: string | null | undefined) {
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
@@ -20,7 +10,9 @@ export function usePresence(userId: string | undefined, userEmail: string | unde
   useEffect(() => {
     if (!userId || !userEmail) return;
 
-    const presenceChannel = supabase.channel('online-users', {
+    console.log('Setting up presence for user:', userId, userEmail);
+
+    const presenceChannel = supabase.channel(PRESENCE_CHANNEL_NAME, {
       config: {
         presence: {
           key: userId,
@@ -30,22 +22,25 @@ export function usePresence(userId: string | undefined, userEmail: string | unde
 
     presenceChannel
       .on('presence', { event: 'sync' }, () => {
-        console.log('Presence synced');
+        console.log('Presence synced for user:', userId);
       })
       .subscribe(async (status) => {
+        console.log('Presence channel status:', status);
         if (status === 'SUBSCRIBED') {
-          await presenceChannel.track({
+          const trackResult = await presenceChannel.track({
             user_id: userId,
             user_email: userEmail,
             user_name: userName || userEmail.split('@')[0],
             online_at: new Date().toISOString(),
           });
+          console.log('Track result:', trackResult);
         }
       });
 
     setChannel(presenceChannel);
 
     return () => {
+      console.log('Unsubscribing presence for user:', userId);
       presenceChannel.unsubscribe();
     };
   }, [userId, userEmail, userName]);
@@ -58,11 +53,15 @@ export function useOnlineUsers() {
   const [onlineCount, setOnlineCount] = useState(0);
 
   useEffect(() => {
-    const presenceChannel = supabase.channel('online-users-admin');
+    console.log('Setting up admin presence listener');
+
+    const presenceChannel = supabase.channel(PRESENCE_CHANNEL_NAME);
 
     presenceChannel
       .on('presence', { event: 'sync' }, () => {
         const state = presenceChannel.presenceState();
+        console.log('Admin received presence state:', state);
+        
         const users: { user_id: string; user_email: string; user_name: string; online_at: string }[] = [];
         
         Object.keys(state).forEach((key) => {
@@ -72,6 +71,7 @@ export function useOnlineUsers() {
           }
         });
 
+        console.log('Parsed online users:', users);
         setOnlineUsers(users);
         setOnlineCount(users.length);
       })
@@ -81,9 +81,12 @@ export function useOnlineUsers() {
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
         console.log('User left:', key, leftPresences);
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Admin presence channel status:', status);
+      });
 
     return () => {
+      console.log('Unsubscribing admin presence listener');
       presenceChannel.unsubscribe();
     };
   }, []);
