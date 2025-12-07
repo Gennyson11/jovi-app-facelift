@@ -121,6 +121,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_platform_access: {
+        Row: {
+          created_at: string
+          id: string
+          platform_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_platform_access_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "streaming_platforms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_platform_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

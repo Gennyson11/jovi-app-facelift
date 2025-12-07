@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userPlatformAccess, setUserPlatformAccess] = useState<string[]>([]);
   const { user, signOut, loading: authLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -79,7 +80,19 @@ export default function Dashboard() {
       .eq('user_id', user?.id)
       .maybeSingle();
 
-    if (profileData) setUserProfile(profileData as UserProfile);
+    if (profileData) {
+      setUserProfile(profileData as UserProfile);
+      
+      // Fetch user's platform access
+      const { data: accessData } = await supabase
+        .from('user_platform_access')
+        .select('platform_id')
+        .eq('user_id', profileData.id);
+      
+      if (accessData) {
+        setUserPlatformAccess(accessData.map(a => a.platform_id));
+      }
+    }
     
     setLoading(false);
   };
@@ -97,12 +110,18 @@ export default function Dashboard() {
     });
   };
 
+  // Check if user has access to a specific platform
+  const hasPlatformSpecificAccess = (platformId: string) => {
+    if (isAdmin) return true;
+    return userPlatformAccess.includes(platformId);
+  };
+
   const handlePlatformClick = (platform: Platform) => {
-    // Check if user has access (admins always have access)
-    if (!isAdmin && !userProfile?.has_access) {
+    // Check if user has access to this specific platform
+    if (!hasPlatformSpecificAccess(platform.id)) {
       toast({
         title: '🔒 Acesso Bloqueado',
-        description: 'Seu acesso ainda não foi liberado pelo administrador.',
+        description: 'Você não tem permissão para acessar esta streaming.',
         variant: 'destructive',
       });
       return;
@@ -208,7 +227,7 @@ export default function Dashboard() {
               ? !!platform.website_url 
               : !!(platform.login && platform.password);
             const isMaintenance = platform.status === 'maintenance';
-            const isBlocked = !hasAccess;
+            const isBlocked = !hasPlatformSpecificAccess(platform.id);
             
             return (
               <div 

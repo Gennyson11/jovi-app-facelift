@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Users, UserCheck, UserX } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Users, UserCheck, UserX, Settings, CheckSquare } from 'lucide-react';
 
 type StreamingStatus = 'online' | 'maintenance';
 type AccessType = 'credentials' | 'link_only';
@@ -36,9 +37,16 @@ interface UserProfile {
   created_at: string;
 }
 
+interface UserPlatformAccess {
+  id: string;
+  user_id: string;
+  platform_id: string;
+}
+
 export default function Admin() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [userPlatformAccess, setUserPlatformAccess] = useState<UserPlatformAccess[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   
@@ -54,6 +62,12 @@ export default function Admin() {
   const [platformWebsiteUrl, setPlatformWebsiteUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // User Permissions Dialog
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [savingPermissions, setSavingPermissions] = useState(false);
   
   const { user, isAdmin, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -77,13 +91,15 @@ export default function Admin() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [platformsRes, usersRes] = await Promise.all([
+    const [platformsRes, usersRes, accessRes] = await Promise.all([
       supabase.from('streaming_platforms').select('*').order('name'),
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('user_platform_access').select('*'),
     ]);
 
     if (platformsRes.data) setPlatforms(platformsRes.data as Platform[]);
     if (usersRes.data) setUsers(usersRes.data as UserProfile[]);
+    if (accessRes.data) setUserPlatformAccess(accessRes.data as UserPlatformAccess[]);
     setLoading(false);
   };
 
@@ -109,6 +125,98 @@ export default function Admin() {
       description: currentAccess ? 'Acesso bloqueado' : 'Acesso liberado' 
     });
     fetchData();
+  };
+
+  // Open permissions dialog
+  const openPermissionsDialog = (userProfile: UserProfile) => {
+    setSelectedUser(userProfile);
+    const userAccess = userPlatformAccess
+      .filter(a => a.user_id === userProfile.id)
+      .map(a => a.platform_id);
+    setSelectedPlatforms(userAccess);
+    setPermissionsDialogOpen(true);
+  };
+
+  // Toggle platform selection
+  const togglePlatformSelection = (platformId: string) => {
+    setSelectedPlatforms(prev => 
+      prev.includes(platformId)
+        ? prev.filter(id => id !== platformId)
+        : [...prev, platformId]
+    );
+  };
+
+  // Select all platforms
+  const selectAllPlatforms = () => {
+    setSelectedPlatforms(platforms.map(p => p.id));
+  };
+
+  // Deselect all platforms
+  const deselectAllPlatforms = () => {
+    setSelectedPlatforms([]);
+  };
+
+  // Save user permissions
+  const saveUserPermissions = async () => {
+    if (!selectedUser) return;
+    
+    setSavingPermissions(true);
+    
+    // Get current access for this user
+    const currentAccess = userPlatformAccess.filter(a => a.user_id === selectedUser.id);
+    const currentPlatformIds = currentAccess.map(a => a.platform_id);
+    
+    // Platforms to add
+    const toAdd = selectedPlatforms.filter(id => !currentPlatformIds.includes(id));
+    // Platforms to remove
+    const toRemove = currentPlatformIds.filter(id => !selectedPlatforms.includes(id));
+    
+    try {
+      // Remove access
+      if (toRemove.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('user_platform_access')
+          .delete()
+          .eq('user_id', selectedUser.id)
+          .in('platform_id', toRemove);
+        
+        if (deleteError) throw deleteError;
+      }
+      
+      // Add access
+      if (toAdd.length > 0) {
+        const newAccess = toAdd.map(platformId => ({
+          user_id: selectedUser.id,
+          platform_id: platformId,
+        }));
+        
+        const { error: insertError } = await supabase
+          .from('user_platform_access')
+          .insert(newAccess);
+        
+        if (insertError) throw insertError;
+      }
+      
+      // Also update has_access based on whether user has any platforms
+      const hasAnyAccess = selectedPlatforms.length > 0;
+      await supabase
+        .from('profiles')
+        .update({ has_access: hasAnyAccess })
+        .eq('id', selectedUser.id);
+      
+      toast({ title: 'Sucesso', description: 'Permissões atualizadas' });
+      setPermissionsDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Falha ao salvar permissões', variant: 'destructive' });
+    } finally {
+      setSavingPermissions(false);
+    }
+  };
+
+  // Get number of platforms user has access to
+  const getUserPlatformCount = (userId: string) => {
+    return userPlatformAccess.filter(a => a.user_id === userId).length;
   };
 
   // Image upload
@@ -483,8 +591,9 @@ export default function Admin() {
                         <TableHead>Nome</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Cadastro</TableHead>
+                        <TableHead>Streamings</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ação</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -498,6 +607,11 @@ export default function Admin() {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {new Date(userProfile.created_at).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                              {getUserPlatformCount(userProfile.id)} / {platforms.length}
+                            </span>
                           </TableCell>
                           <TableCell>
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -519,29 +633,39 @@ export default function Admin() {
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant={userProfile.has_access ? "destructive" : "default"}
-                              size="sm"
-                              onClick={() => toggleUserAccess(userProfile.id, userProfile.has_access)}
-                            >
-                              {userProfile.has_access ? (
-                                <>
-                                  <UserX className="w-4 h-4 mr-2" />
-                                  Bloquear
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="w-4 h-4 mr-2" />
-                                  Liberar
-                                </>
-                              )}
-                            </Button>
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openPermissionsDialog(userProfile)}
+                              >
+                                <Settings className="w-4 h-4 mr-2" />
+                                Permissões
+                              </Button>
+                              <Button
+                                variant={userProfile.has_access ? "destructive" : "default"}
+                                size="sm"
+                                onClick={() => toggleUserAccess(userProfile.id, userProfile.has_access)}
+                              >
+                                {userProfile.has_access ? (
+                                  <>
+                                    <UserX className="w-4 h-4 mr-2" />
+                                    Bloquear
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="w-4 h-4 mr-2" />
+                                    Liberar
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
                       {users.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                             Nenhum usuário cadastrado
                           </TableCell>
                         </TableRow>
@@ -708,6 +832,101 @@ export default function Admin() {
             </Button>
             <Button onClick={savePlatform}>
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Permissions Dialog */}
+      <Dialog open={permissionsDialogOpen} onOpenChange={setPermissionsDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              Permissões de Streaming
+            </DialogTitle>
+            {selectedUser && (
+              <p className="text-sm text-muted-foreground">
+                {selectedUser.name || selectedUser.email}
+              </p>
+            )}
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Selecione as streamings que o usuário poderá acessar
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectAllPlatforms}
+                >
+                  <CheckSquare className="w-4 h-4 mr-2" />
+                  Todas
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={deselectAllPlatforms}
+                >
+                  Limpar
+                </Button>
+              </div>
+            </div>
+            
+            <div className="border border-border rounded-lg divide-y divide-border max-h-[400px] overflow-y-auto">
+              {platforms.map((platform) => (
+                <label
+                  key={platform.id}
+                  className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer transition-colors"
+                >
+                  <Checkbox
+                    checked={selectedPlatforms.includes(platform.id)}
+                    onCheckedChange={() => togglePlatformSelection(platform.id)}
+                  />
+                  <div className="flex items-center gap-3 flex-1">
+                    {platform.cover_image_url ? (
+                      <img 
+                        src={platform.cover_image_url} 
+                        alt={platform.name}
+                        className="w-10 h-6 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-10 h-6 bg-muted rounded flex items-center justify-center">
+                        <Image className="w-3 h-3 text-muted-foreground" />
+                      </div>
+                    )}
+                    <span className="font-medium text-sm">{platform.name}</span>
+                  </div>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
+                    platform.status === 'online' 
+                      ? 'bg-green-500/10 text-green-500' 
+                      : 'bg-yellow-500/10 text-yellow-500'
+                  }`}>
+                    {platform.status === 'online' ? 'Online' : 'Manutenção'}
+                  </span>
+                </label>
+              ))}
+              {platforms.length === 0 && (
+                <p className="text-center text-muted-foreground py-8">
+                  Nenhuma plataforma cadastrada
+                </p>
+              )}
+            </div>
+            
+            <p className="text-sm text-muted-foreground text-center">
+              {selectedPlatforms.length} de {platforms.length} streamings selecionadas
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPermissionsDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={saveUserPermissions} disabled={savingPermissions}>
+              {savingPermissions ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Salvar Permissões
             </Button>
           </DialogFooter>
         </DialogContent>
