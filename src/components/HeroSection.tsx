@@ -1,21 +1,22 @@
 import { Play, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-hacker.jpg";
-
 interface HeroSectionProps {
   onAccessClick?: () => void;
 }
-
-const HeroSection = ({ onAccessClick }: HeroSectionProps) => {
-  return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center px-4 py-20 overflow-hidden">
+const HeroSection = ({
+  onAccessClick
+}: HeroSectionProps) => {
+  return <section className="relative min-h-screen flex flex-col items-center justify-center px-4 py-20 overflow-hidden">
       {/* Background gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background pointer-events-none" />
       
       {/* Animated background elements */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse" style={{
+        animationDelay: '1s'
+      }} />
       </div>
 
       <div className="relative z-10 max-w-5xl mx-auto text-center">
@@ -42,11 +43,7 @@ const HeroSection = ({ onAccessClick }: HeroSectionProps) => {
           
           {/* Image container */}
           <div className="relative rounded-2xl overflow-hidden border-2 border-primary/40 shadow-2xl shadow-primary/20">
-            <img 
-              src={heroImage} 
-              alt="Hacker com ferramentas de IA" 
-              className="w-full transition-transform duration-700 group-hover:scale-105"
-            />
+            <img src={heroImage} alt="Hacker com ferramentas de IA" className="w-full transition-transform duration-700 group-hover:scale-105" />
             {/* Gradient overlays */}
             <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent pointer-events-none" />
             <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-accent/10 pointer-events-none" />
@@ -61,7 +58,7 @@ const HeroSection = ({ onAccessClick }: HeroSectionProps) => {
 
         {/* Subtitle */}
         <p className="text-xl md:text-2xl text-foreground mb-2">
-          Tenha <span className="text-accent font-semibold">+70 ferramentas premium</span> de IA e Marketing Digital
+          Tenha <span className="text-accent font-semibold">+115 ferramentas premium</span> de IA e Marketing Digital
         </p>
         <p className="text-lg md:text-xl text-foreground mb-4">
           em um só acesso, pagando apenas <span className="text-primary font-semibold">R$29,99/mês</span>
@@ -77,8 +74,6 @@ const HeroSection = ({ onAccessClick }: HeroSectionProps) => {
           <ChevronRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
         </Button>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default HeroSection;
