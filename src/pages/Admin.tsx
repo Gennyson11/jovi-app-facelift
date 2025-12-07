@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Users, UserCheck, UserX, Settings, CheckSquare, Clock, Calendar, Infinity } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Users, UserCheck, UserX, Settings, CheckSquare, Clock, Calendar, Infinity, PlusCircle, MinusCircle } from 'lucide-react';
 
 type StreamingStatus = 'online' | 'maintenance';
 type AccessType = 'credentials' | 'link_only';
@@ -276,6 +276,56 @@ export default function Admin() {
     }
     
     return { text: `${daysRemaining}d restantes`, color: 'bg-green-500/10 text-green-500', icon: Calendar };
+  };
+
+  // Add or remove days from user access
+  const modifyUserDays = async (userProfile: UserProfile, daysToAdd: number) => {
+    let newExpirationDate: Date;
+    
+    if (userProfile.access_expires_at === null) {
+      // User has lifetime access, can't modify
+      toast({ 
+        title: 'Aviso', 
+        description: 'Usuário possui acesso vitalício. Edite as permissões para alterar.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+    
+    const currentExpiration = new Date(userProfile.access_expires_at);
+    const now = new Date();
+    
+    // If expired, start from now
+    if (currentExpiration < now) {
+      newExpirationDate = new Date();
+      newExpirationDate.setDate(newExpirationDate.getDate() + daysToAdd);
+    } else {
+      // Add/remove from current expiration
+      newExpirationDate = new Date(currentExpiration);
+      newExpirationDate.setDate(newExpirationDate.getDate() + daysToAdd);
+    }
+    
+    // Ensure expiration is not in the past when removing days
+    if (newExpirationDate < now) {
+      newExpirationDate = now;
+    }
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ access_expires_at: newExpirationDate.toISOString() })
+      .eq('id', userProfile.id);
+    
+    if (error) {
+      toast({ title: 'Erro', description: 'Falha ao modificar dias de acesso', variant: 'destructive' });
+      return;
+    }
+    
+    const action = daysToAdd > 0 ? 'adicionados' : 'removidos';
+    toast({ 
+      title: 'Sucesso', 
+      description: `${Math.abs(daysToAdd)} dias ${action}` 
+    });
+    fetchData();
   };
 
   // Get number of platforms user has access to
@@ -657,6 +707,7 @@ export default function Admin() {
                         <TableHead>Cadastro</TableHead>
                         <TableHead>Streamings</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Dias</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -688,6 +739,51 @@ export default function Admin() {
                                 </span>
                               );
                             })()}
+                          </TableCell>
+                          <TableCell>
+                            {userProfile.has_access && userProfile.access_expires_at !== null && (
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                  onClick={() => modifyUserDays(userProfile, -7)}
+                                  title="Remover 7 dias"
+                                >
+                                  <MinusCircle className="w-4 h-4" />
+                                </Button>
+                                <div className="flex flex-col gap-0.5">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                                    onClick={() => modifyUserDays(userProfile, 7)}
+                                  >
+                                    +7d
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-xs text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                                    onClick={() => modifyUserDays(userProfile, 30)}
+                                  >
+                                    +30d
+                                  </Button>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                                  onClick={() => modifyUserDays(userProfile, 90)}
+                                  title="Adicionar 90 dias"
+                                >
+                                  <PlusCircle className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
+                            {userProfile.access_expires_at === null && userProfile.has_access && (
+                              <span className="text-xs text-purple-400">∞</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
@@ -722,7 +818,7 @@ export default function Admin() {
                       ))}
                       {users.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                             Nenhum usuário cadastrado
                           </TableCell>
                         </TableRow>
