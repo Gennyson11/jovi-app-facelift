@@ -362,14 +362,7 @@ export default function Dashboard() {
                 }}
               >
                 <div className="p-4">
-                  <button
-                    onClick={() => dismissNewsItem(newsItem.id)}
-                    className="absolute top-3 right-3 p-1 rounded-full hover:bg-background/50 transition-colors z-10"
-                    title="Fechar aviso"
-                  >
-                    <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                  </button>
-                  <div className="flex items-start gap-4 pr-8">
+                  <div className="flex items-start gap-4">
                     <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
                       <Megaphone className="w-6 h-6 text-white" />
                     </div>
