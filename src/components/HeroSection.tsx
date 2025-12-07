@@ -30,16 +30,28 @@ const HeroSection = () => {
           <span className="ml-2">💸</span>
         </h1>
 
-        {/* Hero Image */}
-        <div className="relative my-10 max-w-3xl mx-auto">
-          <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-accent/20 to-primary/30 rounded-3xl blur-sm" />
-          <div className="relative rounded-2xl overflow-hidden border border-primary/20">
+        {/* Hero Image with Effects */}
+        <div className="relative my-10 max-w-3xl mx-auto group">
+          {/* Animated glow background */}
+          <div className="absolute -inset-2 bg-gradient-to-r from-primary via-accent to-primary rounded-3xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500 animate-pulse" />
+          <div className="absolute -inset-1 bg-gradient-to-r from-accent/50 via-primary/50 to-accent/50 rounded-3xl blur-md opacity-60" />
+          
+          {/* Image container */}
+          <div className="relative rounded-2xl overflow-hidden border-2 border-primary/40 shadow-2xl shadow-primary/20">
             <img 
               src={heroImage} 
               alt="Hacker com ferramentas de IA" 
-              className="w-full"
+              className="w-full transition-transform duration-700 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent pointer-events-none" />
+            {/* Gradient overlays */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-accent/10 pointer-events-none" />
+            
+            {/* Corner accents */}
+            <div className="absolute top-0 left-0 w-20 h-20 border-t-2 border-l-2 border-primary/60 rounded-tl-2xl" />
+            <div className="absolute top-0 right-0 w-20 h-20 border-t-2 border-r-2 border-accent/60 rounded-tr-2xl" />
+            <div className="absolute bottom-0 left-0 w-20 h-20 border-b-2 border-l-2 border-accent/60 rounded-bl-2xl" />
+            <div className="absolute bottom-0 right-0 w-20 h-20 border-b-2 border-r-2 border-primary/60 rounded-br-2xl" />
           </div>
         </div>
 
