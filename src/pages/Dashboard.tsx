@@ -265,12 +265,14 @@ export default function Dashboard() {
 
                     {/* Blocked Overlay */}
                     {isBlocked && (
-                      <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2 group-hover:bg-green-900/70 transition-colors">
-                        <Lock className="w-10 h-10 text-white/80 group-hover:hidden" />
-                        <ExternalLink className="w-10 h-10 text-green-400 hidden group-hover:block" />
-                        <p className="text-white text-sm font-medium text-center px-4 group-hover:text-green-300">
-                          Clique aqui para adquirir seu acesso
-                        </p>
+                      <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-3 group-hover:bg-green-900/80 transition-colors">
+                        <Lock className="w-8 h-8 text-white/80 group-hover:hidden" />
+                        <ExternalLink className="w-8 h-8 text-green-400 hidden group-hover:block animate-pulse" />
+                        <div className="bg-green-500 px-4 py-2 rounded-lg shadow-lg shadow-green-500/30">
+                          <p className="text-white text-sm font-bold text-center">
+                            🔓 Clique aqui para adquirir seu acesso
+                          </p>
+                        </div>
                       </div>
                     )}
 
