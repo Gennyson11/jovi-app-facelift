@@ -232,10 +232,28 @@ export default function Dashboard() {
           
           {selectedCredential ? (
             <div className="space-y-4 mt-4">
+              {/* Copy All Button */}
+              <Button
+                className="w-full"
+                onClick={() => {
+                  navigator.clipboard.writeText(`Login: ${selectedCredential.login}\nSenha: ${selectedCredential.password}`);
+                  toast({
+                    title: '✅ Copiado!',
+                    description: 'Login e senha copiados para a área de transferência',
+                  });
+                }}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copiar Login e Senha
+              </Button>
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Login</label>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-background/50 border border-border rounded-md px-3 py-2 text-foreground">
+                  <div 
+                    className="flex-1 bg-background/50 border border-border rounded-md px-3 py-2 text-foreground cursor-pointer hover:bg-background/70 transition-colors"
+                    onClick={() => copyToClipboard(selectedCredential.login, 'Login')}
+                  >
                     {selectedCredential.login}
                   </div>
                   <Button
@@ -251,7 +269,10 @@ export default function Dashboard() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Senha</label>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-background/50 border border-border rounded-md px-3 py-2 text-foreground font-mono">
+                  <div 
+                    className="flex-1 bg-background/50 border border-border rounded-md px-3 py-2 text-foreground font-mono cursor-pointer hover:bg-background/70 transition-colors"
+                    onClick={() => copyToClipboard(selectedCredential.password, 'Senha')}
+                  >
                     {showPassword ? selectedCredential.password : '••••••••'}
                   </div>
                   <Button
