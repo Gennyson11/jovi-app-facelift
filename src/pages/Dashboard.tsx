@@ -235,12 +235,18 @@ export default function Dashboard() {
                 className={`group cursor-pointer transition-all duration-300 ${
                   !hasPlatformAccess || isMaintenance || isBlocked ? 'opacity-60' : ''
                 }`}
-                onClick={() => handlePlatformClick(platform)}
+                onClick={() => {
+                  if (isBlocked) {
+                    window.open('https://bit.ly/whatsapp-suportejt', '_blank');
+                  } else {
+                    handlePlatformClick(platform);
+                  }
+                }}
               >
                 {/* Card Container */}
                 <div className={`bg-card border border-border rounded-xl overflow-hidden transition-all duration-300 ${
                   isBlocked 
-                    ? 'grayscale' 
+                    ? 'grayscale hover:grayscale-0 hover:border-green-500/50' 
                     : 'hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10'
                 }`}>
                   {/* Cover Image Area */}
@@ -259,8 +265,12 @@ export default function Dashboard() {
 
                     {/* Blocked Overlay */}
                     {isBlocked && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <Lock className="w-12 h-12 text-white/80" />
+                      <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2 group-hover:bg-green-900/70 transition-colors">
+                        <Lock className="w-10 h-10 text-white/80 group-hover:hidden" />
+                        <ExternalLink className="w-10 h-10 text-green-400 hidden group-hover:block" />
+                        <p className="text-white text-sm font-medium text-center px-4 group-hover:text-green-300">
+                          Clique aqui para adquirir seu acesso
+                        </p>
                       </div>
                     )}
 
