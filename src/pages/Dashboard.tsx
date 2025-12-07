@@ -176,18 +176,18 @@ export default function Dashboard() {
                       </div>
                     )}
                     
-                    {/* Status Badge */}
-                    <div className={`absolute top-3 right-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm ${
+                    {/* Status Badge - More Visible */}
+                    <div className={`absolute top-3 right-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold backdrop-blur-md shadow-lg ${
                       platform.status === 'online' 
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                        : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                        ? 'bg-emerald-500 text-white' 
+                        : 'bg-yellow-500 text-black'
                     }`}>
                       {platform.status === 'online' ? (
-                        <CheckCircle className="w-3.5 h-3.5" />
+                        <CheckCircle className="w-4 h-4" />
                       ) : (
-                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <AlertTriangle className="w-4 h-4" />
                       )}
-                      {platform.status === 'online' ? 'Online' : 'Manutenção'}
+                      {platform.status === 'online' ? 'ONLINE' : 'MANUTENÇÃO'}
                     </div>
 
                     {/* Access Type Badge */}
