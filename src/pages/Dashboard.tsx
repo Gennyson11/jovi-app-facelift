@@ -356,35 +356,43 @@ export default function Dashboard() {
             {visibleNews.map((newsItem) => (
               <div 
                 key={newsItem.id}
-                className="relative p-4 rounded-xl bg-gradient-to-r from-cyan/10 via-primary/10 to-magenta/10 border border-cyan/30 animate-fade-in"
+                className="relative rounded-xl bg-card border-2 border-transparent overflow-hidden"
+                style={{
+                  background: 'linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box, linear-gradient(90deg, hsl(180 100% 50%), hsl(280 100% 60%), hsl(140 100% 50%)) border-box',
+                }}
               >
-                <button
-                  onClick={() => dismissNewsItem(newsItem.id)}
-                  className="absolute top-3 right-3 p-1 rounded-full hover:bg-background/50 transition-colors"
-                  title="Fechar aviso"
-                >
-                  <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                </button>
-                <div className="flex items-start gap-3 pr-8">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan/20 flex items-center justify-center">
-                    <Megaphone className="w-5 h-5 text-cyan" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-foreground text-sm mb-1">
-                      {newsItem.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">
-                      {newsItem.content}
-                    </p>
-                    <p className="text-xs text-muted-foreground/60 mt-2">
-                      {new Date(newsItem.created_at).toLocaleDateString('pt-BR', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
+                <div className="p-4">
+                  <button
+                    onClick={() => dismissNewsItem(newsItem.id)}
+                    className="absolute top-3 right-3 p-1 rounded-full hover:bg-background/50 transition-colors z-10"
+                    title="Fechar aviso"
+                  >
+                    <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                  </button>
+                  <div className="flex items-start gap-4 pr-8">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                      <Megaphone className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/50 mb-2">
+                        <span className="text-yellow-400 text-xs">✨</span>
+                        <span className="text-yellow-400 font-bold text-xs uppercase tracking-wide">NOVIDADE</span>
+                        <span className="text-yellow-400 text-xs">✨</span>
+                      </div>
+                      <h3 className="font-bold text-yellow-400 text-base mb-1">
+                        {newsItem.title}
+                      </h3>
+                      <p className="text-muted-foreground text-sm whitespace-pre-wrap">
+                        {newsItem.content}
+                      </p>
+                      <p className="text-xs text-muted-foreground/60 mt-2 flex items-center gap-1">
+                        📅 {new Date(newsItem.created_at).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
