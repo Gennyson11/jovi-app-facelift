@@ -42,24 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        // Only update if there's an actual change
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
-          
-          if (newSession?.user) {
-            setTimeout(() => {
-              fetchUserRole(newSession.user.id).then(setRole);
-            }, 0);
-          } else {
-            setRole(null);
-          }
-        }
-      }
-    );
-
+    // Get initial session first
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
@@ -73,6 +56,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     });
+
+    // Then set up listener for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        // Only handle actual auth changes, not visibility/focus events
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          
+          if (newSession?.user) {
+            setTimeout(() => {
+              fetchUserRole(newSession.user.id).then(setRole);
+            }, 0);
+          } else {
+            setRole(null);
+          }
+        }
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, []);
