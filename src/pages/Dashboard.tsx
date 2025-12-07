@@ -175,20 +175,6 @@ export default function Dashboard() {
                         <span className="text-6xl">{platformIcons[platform.name] || '📺'}</span>
                       </div>
                     )}
-                    
-                    {/* Status Badge - More Visible */}
-                    <div className={`absolute top-3 right-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold backdrop-blur-md shadow-lg ${
-                      platform.status === 'online' 
-                        ? 'bg-emerald-500 text-white' 
-                        : 'bg-yellow-500 text-black'
-                    }`}>
-                      {platform.status === 'online' ? (
-                        <CheckCircle className="w-4 h-4" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4" />
-                      )}
-                      {platform.status === 'online' ? 'ONLINE' : 'MANUTENÇÃO'}
-                    </div>
 
                     {/* Access Type Badge */}
                     <div className={`absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm ${
@@ -204,8 +190,22 @@ export default function Dashboard() {
                     </div>
                   </div>
 
+                  {/* Status Bar - Below Image */}
+                  <div className={`w-full py-2 px-4 flex items-center justify-center gap-2 text-sm font-bold ${
+                    platform.status === 'online' 
+                      ? 'bg-emerald-500 text-white' 
+                      : 'bg-yellow-500 text-black'
+                  }`}>
+                    {platform.status === 'online' ? (
+                      <CheckCircle className="w-4 h-4" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4" />
+                    )}
+                    {platform.status === 'online' ? 'ONLINE' : 'MANUTENÇÃO'}
+                  </div>
+
                   {/* Footer */}
-                  <div className="p-4 flex items-center justify-between border-t border-border/50">
+                  <div className="p-4 flex items-center justify-between">
                     <div>
                       <h3 className="font-display font-bold text-foreground uppercase tracking-wide">
                         {platform.name}
