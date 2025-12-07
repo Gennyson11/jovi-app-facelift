@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Tv, LogOut, Eye, EyeOff, Copy, Loader2, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Lock, Clock } from 'lucide-react';
+import { Tv, LogOut, Eye, EyeOff, Copy, Loader2, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Lock, Clock, Megaphone, X } from 'lucide-react';
 
 type StreamingStatus = 'online' | 'maintenance';
 type AccessType = 'credentials' | 'link_only';
@@ -42,6 +42,14 @@ interface UserProfile {
   access_expires_at: string | null;
 }
 
+interface News {
+  id: string;
+  title: string;
+  content: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 const platformIcons: Record<string, string> = {
   'Netflix': '🎬',
   'Amazon Prime Video': '📦',
@@ -58,6 +66,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userPlatformAccess, setUserPlatformAccess] = useState<string[]>([]);
+  const [news, setNews] = useState<News[]>([]);
+  const [dismissedNews, setDismissedNews] = useState<string[]>([]);
   const { user, signOut, loading: authLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -77,13 +87,14 @@ export default function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     
-    // Fetch platforms
-    const { data: platformsData } = await supabase
-      .from('streaming_platforms')
-      .select('*')
-      .order('name');
+    // Fetch platforms and news
+    const [platformsRes, newsRes] = await Promise.all([
+      supabase.from('streaming_platforms').select('*').order('name'),
+      supabase.from('news').select('*').eq('is_active', true).order('created_at', { ascending: false }),
+    ]);
 
-    if (platformsData) setPlatforms(platformsData as Platform[]);
+    if (platformsRes.data) setPlatforms(platformsRes.data as Platform[]);
+    if (newsRes.data) setNews(newsRes.data as News[]);
 
     // Fetch user profile to check access
     const { data: profileData } = await supabase
@@ -108,6 +119,12 @@ export default function Dashboard() {
     
     setLoading(false);
   };
+
+  const dismissNewsItem = (newsId: string) => {
+    setDismissedNews(prev => [...prev, newsId]);
+  };
+
+  const visibleNews = news.filter(n => !dismissedNews.includes(n.id));
 
   const handleLogout = async () => {
     await signOut();
@@ -330,6 +347,48 @@ export default function Dashboard() {
             <p className="text-destructive/80 mt-1">
               ❌ Qualquer compartilhamento resultará na perda imediata do acesso.
             </p>
+          </div>
+        )}
+
+        {/* News/Announcements Section */}
+        {visibleNews.length > 0 && (
+          <div className="mb-6 space-y-3">
+            {visibleNews.map((newsItem) => (
+              <div 
+                key={newsItem.id}
+                className="relative p-4 rounded-xl bg-gradient-to-r from-cyan/10 via-primary/10 to-magenta/10 border border-cyan/30 animate-fade-in"
+              >
+                <button
+                  onClick={() => dismissNewsItem(newsItem.id)}
+                  className="absolute top-3 right-3 p-1 rounded-full hover:bg-background/50 transition-colors"
+                  title="Fechar aviso"
+                >
+                  <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                </button>
+                <div className="flex items-start gap-3 pr-8">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan/20 flex items-center justify-center">
+                    <Megaphone className="w-5 h-5 text-cyan" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-foreground text-sm mb-1">
+                      {newsItem.title}
+                    </h3>
+                    <p className="text-muted-foreground text-sm whitespace-pre-wrap">
+                      {newsItem.content}
+                    </p>
+                    <p className="text-xs text-muted-foreground/60 mt-2">
+                      {new Date(newsItem.created_at).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
