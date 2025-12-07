@@ -38,11 +38,18 @@ export default function Auth() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!loading && user && role) {
+    if (!loading && user) {
+      // Redireciona baseado na role, default para dashboard se role ainda não carregou
       if (role === 'admin') {
         navigate('/admin');
-      } else {
+      } else if (role) {
         navigate('/dashboard');
+      } else {
+        // Se user existe mas role ainda não foi carregada, aguarda um pouco e redireciona
+        const timeout = setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+        return () => clearTimeout(timeout);
       }
     }
   }, [user, role, loading, navigate]);
