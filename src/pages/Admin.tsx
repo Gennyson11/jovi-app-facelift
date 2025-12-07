@@ -140,6 +140,11 @@ export default function Admin() {
 
   // Also track admin presence
   usePresence(user?.id, user?.email, 'Admin');
+
+  // Ref to track if data has been fetched for the current user
+  const hasFetchedRef = useRef(false);
+  const currentUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
@@ -149,11 +154,19 @@ export default function Admin() {
       }
     }
   }, [user, isAdmin, authLoading, navigate]);
+
   useEffect(() => {
-    if (user && isAdmin) {
+    // Only fetch data if user exists, is admin, and we haven't fetched for this user yet
+    if (user?.id && user.id !== currentUserIdRef.current) {
+      currentUserIdRef.current = user.id;
+      hasFetchedRef.current = false;
+    }
+    
+    if (user?.id && isAdmin && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       fetchData();
     }
-  }, [user, isAdmin]);
+  }, [user?.id, isAdmin]);
   const fetchData = async () => {
     setLoading(true);
     const [platformsRes, usersRes, accessRes, newsRes] = await Promise.all([supabase.from('streaming_platforms').select('*').order('name'), supabase.from('profiles').select('*').order('created_at', {

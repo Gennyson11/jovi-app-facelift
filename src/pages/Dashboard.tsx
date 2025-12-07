@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -92,19 +92,28 @@ export default function Dashboard() {
     toast
   } = useToast();
 
-  // Track user presence for real-time monitoring - use email as fallback for name
-  // Only use stable values (user.id, user.email) to prevent re-subscriptions
-  usePresence(user?.id, user?.email, user?.email?.split('@')[0] || null);
+  // Ref to track if data has been fetched for the current user
+  const hasFetchedRef = useRef(false);
+  const currentUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login');
     }
   }, [user, authLoading, navigate]);
+
   useEffect(() => {
-    if (user) {
+    // Only fetch data if user exists and we haven't fetched for this user yet
+    if (user?.id && user.id !== currentUserIdRef.current) {
+      currentUserIdRef.current = user.id;
+      hasFetchedRef.current = false;
+    }
+    
+    if (user?.id && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       fetchData();
     }
-  }, [user]);
+  }, [user?.id]);
   const fetchData = async () => {
     setLoading(true);
 
