@@ -174,11 +174,23 @@ export default function Admin() {
 
   // Toggle user access
   const toggleUserAccess = async (userId: string, currentAccess: boolean) => {
-    const {
-      error
-    } = await supabase.from('profiles').update({
+    // When enabling access, set a default expiration of 30 days
+    const updateData: { has_access: boolean; access_expires_at?: string | null } = {
       has_access: !currentAccess
-    }).eq('id', userId);
+    };
+    
+    // Only set expiration when enabling access (not when blocking)
+    if (!currentAccess) {
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 30);
+      updateData.access_expires_at = expirationDate.toISOString();
+    }
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update(updateData)
+      .eq('id', userId);
+      
     if (error) {
       toast({
         title: 'Erro',
@@ -189,7 +201,7 @@ export default function Admin() {
     }
     toast({
       title: 'Sucesso',
-      description: currentAccess ? 'Acesso bloqueado' : 'Acesso liberado'
+      description: currentAccess ? 'Acesso bloqueado' : 'Acesso liberado (30 dias)'
     });
     fetchData();
   };
