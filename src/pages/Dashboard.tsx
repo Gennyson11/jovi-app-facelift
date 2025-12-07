@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Tv, LogOut, Eye, EyeOff, Copy, Loader2, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Lock } from 'lucide-react';
+import { Tv, LogOut, Eye, EyeOff, Copy, Loader2, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Lock, Clock } from 'lucide-react';
 
 type StreamingStatus = 'online' | 'maintenance';
 type AccessType = 'credentials' | 'link_only';
@@ -248,6 +248,62 @@ export default function Dashboard() {
             <p className="text-yellow-500/80">
               Seu cadastro foi recebido! Aguarde a liberação do acesso pelo administrador.
             </p>
+          </div>
+        )}
+
+        {/* Account Validity Card */}
+        {hasAccess && userProfile && (
+          <div className="mb-6 p-4 rounded-xl bg-card border border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Validade da Sua Conta</p>
+                  <p className="text-xl font-bold text-green-500">
+                    {(() => {
+                      if (userProfile.access_expires_at === null) {
+                        return 'Acesso Vitalício';
+                      }
+                      const expiresAt = new Date(userProfile.access_expires_at);
+                      const now = new Date();
+                      const diffMs = expiresAt.getTime() - now.getTime();
+                      
+                      if (diffMs <= 0) return 'Expirado';
+                      
+                      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                      const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                      
+                      if (days > 0) {
+                        return `${days}d ${hours}h restantes`;
+                      }
+                      return `${hours}h restantes`;
+                    })()}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {userProfile.access_expires_at === null 
+                      ? 'Sem data de expiração'
+                      : `Expira em ${new Date(userProfile.access_expires_at).toLocaleDateString('pt-BR', { 
+                          day: '2-digit', 
+                          month: 'long', 
+                          year: 'numeric' 
+                        })} às ${new Date(userProfile.access_expires_at).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}`
+                    }
+                  </p>
+                </div>
+              </div>
+              <div className={`px-3 py-1.5 rounded-full border text-sm font-medium ${
+                userProfile.access_expires_at === null
+                  ? 'border-purple-500/30 text-purple-400 bg-purple-500/10'
+                  : 'border-green-500/30 text-green-500 bg-green-500/10'
+              }`}>
+                {userProfile.access_expires_at === null ? '∞ Vitalício' : '✓ Ativa'}
+              </div>
+            </div>
           </div>
         )}
 
