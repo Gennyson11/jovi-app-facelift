@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useOnlineUsers } from '@/hooks/usePresence';
+import { useOnlineUsers, usePresence } from '@/hooks/usePresence';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -118,6 +118,9 @@ export default function Admin() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { onlineUsers, onlineCount } = useOnlineUsers();
+
+  // Also track admin presence
+  usePresence(user?.id, user?.email, 'Admin');
 
   useEffect(() => {
     if (!authLoading) {
