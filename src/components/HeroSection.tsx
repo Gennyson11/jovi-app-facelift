@@ -31,11 +31,11 @@ const HeroSection = () => {
         </h1>
 
         {/* Hero Image */}
-        <div className="relative my-10 rounded-2xl overflow-hidden glow-cyan-intense">
+        <div className="relative my-10 overflow-hidden">
           <img 
             src={heroImage} 
             alt="Hacker com ferramentas de IA" 
-            className="w-full max-w-3xl mx-auto rounded-2xl"
+            className="w-full max-w-3xl mx-auto"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent pointer-events-none" />
         </div>
