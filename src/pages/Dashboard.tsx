@@ -206,7 +206,7 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="text-xl font-display font-bold bg-gradient-to-r from-cyan to-primary bg-clip-text text-transparent">
-                Painel de Controle
+                GPainel Controle 
               </h1>
               <p className="text-sm text-muted-foreground">
                 {userProfile ? `Olá, ${userProfile.name || userProfile.email}` : 'Vamos criar algo incrível juntos'}
