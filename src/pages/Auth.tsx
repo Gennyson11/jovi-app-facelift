@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Tv, Loader2 } from 'lucide-react';
+import { Loader2, Cloud } from 'lucide-react';
 import { z } from 'zod';
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -44,9 +44,13 @@ export default function Auth() {
     // Only redirect when we have both user AND role loaded (not loading)
     if (!loading && user && role) {
       if (role === 'admin') {
-        navigate('/admin', { replace: true });
+        navigate('/admin', {
+          replace: true
+        });
       } else {
-        navigate('/dashboard', { replace: true });
+        navigate('/dashboard', {
+          replace: true
+        });
       }
     }
   }, [user, role, loading, navigate]);
@@ -144,7 +148,7 @@ export default function Auth() {
       <Card className="w-full max-w-md border-primary/20 bg-card/80 backdrop-blur-sm">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <Tv className="w-8 h-8 text-primary" />
+            <Cloud className="w-8 h-8 text-primary" />
           </div>
           <div>
             <CardTitle className="text-2xl font-display text-foreground">
