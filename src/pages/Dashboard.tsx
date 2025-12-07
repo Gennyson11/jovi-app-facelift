@@ -325,7 +325,7 @@ export default function Dashboard() {
                       <h3 className="font-bold text-orange-400 text-lg mb-1">
                         {newsItem.title}
                       </h3>
-                      <p className="text-orange-100/90 text-sm whitespace-pre-wrap">
+                      <p className="text-orange-300 text-sm whitespace-pre-wrap font-medium">
                         {newsItem.content}
                       </p>
                       <p className="text-xs text-orange-300/60 mt-2 flex items-center gap-1">
