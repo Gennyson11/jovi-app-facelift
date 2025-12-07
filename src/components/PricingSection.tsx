@@ -21,7 +21,7 @@ const PricingSection = () => {
           <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
             ESCOLHA SEU
           </h2>
-          <h3 className="text-3xl md:text-4xl font-display font-bold text-accent mt-1">
+          <h3 className="text-3xl md:text-4xl font-display font-bold text-primary mt-1">
             PLANO PREMIUM
           </h3>
         </div>
@@ -29,30 +29,34 @@ const PricingSection = () => {
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Monthly Plan */}
-          <div className="relative p-8 rounded-2xl bg-card/50 border border-accent/20 hover:border-accent/40 transition-all duration-500 group"
-               style={{ boxShadow: '0 0 60px -15px hsl(var(--accent) / 0.3)' }}>
+          <div 
+            className="relative p-8 rounded-2xl bg-card/30 border border-accent/30 transition-all duration-500 group"
+            style={{ 
+              boxShadow: '0 0 80px -20px hsl(var(--accent) / 0.5), inset 0 1px 0 0 hsl(var(--accent) / 0.1)'
+            }}
+          >
             {/* Popular Badge */}
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="px-6 py-1.5 rounded-full text-xs font-display font-bold bg-primary text-primary-foreground shadow-lg">
+            <div className="flex justify-center mb-6">
+              <span className="px-6 py-1.5 rounded-full text-xs font-display font-bold bg-primary text-primary-foreground">
                 MAIS POPULAR
               </span>
             </div>
 
-            <div className="text-center mt-4">
-              <h4 className="text-2xl font-display font-bold text-primary mb-6">MENSAL</h4>
+            <div className="text-center">
+              <h4 className="text-2xl font-display font-bold text-accent mb-4">MENSAL</h4>
               
               {/* Original Price */}
               <p className="text-muted-foreground line-through text-base">R$897,00</p>
               
               {/* Current Price */}
-              <p className="text-foreground my-2">
+              <p className="my-2">
                 <span className="text-5xl font-display font-bold text-primary">R$37</span>
-                <span className="text-lg text-muted-foreground">/mês</span>
+                <span className="text-lg text-foreground">/mês</span>
               </p>
             </div>
 
             {/* Benefits */}
-            <ul className="mt-8 space-y-4">
+            <ul className="mt-8 space-y-3">
               {benefits.map((benefit) => (
                 <li key={benefit} className="flex items-center gap-3 text-sm text-muted-foreground">
                   <Check className="w-5 h-5 text-primary flex-shrink-0" />
@@ -62,7 +66,11 @@ const PricingSection = () => {
             </ul>
 
             {/* CTA */}
-            <Button variant="hero" size="lg" className="w-full mt-8 bg-primary hover:bg-primary/90 text-primary-foreground font-display font-bold">
+            <Button 
+              variant="default" 
+              size="lg" 
+              className="w-full mt-8 bg-primary hover:bg-primary/90 text-primary-foreground font-display font-bold text-lg py-6"
+            >
               ASSINAR AGORA
             </Button>
 
@@ -74,25 +82,29 @@ const PricingSection = () => {
           </div>
 
           {/* Quarterly Plan */}
-          <div className="relative p-8 rounded-2xl bg-card/50 border border-primary/20 hover:border-primary/40 transition-all duration-500 group"
-               style={{ boxShadow: '0 0 60px -15px hsl(var(--primary) / 0.3)' }}>
+          <div 
+            className="relative p-8 rounded-2xl bg-card/30 border border-primary/30 transition-all duration-500 group"
+            style={{ 
+              boxShadow: '0 0 80px -20px hsl(var(--primary) / 0.5), inset 0 1px 0 0 hsl(var(--primary) / 0.1)'
+            }}
+          >
             {/* Best Value Badge */}
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="px-6 py-1.5 rounded-full text-xs font-display font-bold bg-accent text-accent-foreground shadow-lg">
+            <div className="flex justify-center mb-6">
+              <span className="px-6 py-1.5 rounded-full text-xs font-display font-bold bg-accent text-accent-foreground">
                 MELHOR CUSTO
               </span>
             </div>
 
-            <div className="text-center mt-4">
-              <h4 className="text-2xl font-display font-bold text-accent mb-6">TRIMESTRAL</h4>
+            <div className="text-center">
+              <h4 className="text-2xl font-display font-bold text-accent mb-4">TRIMESTRAL</h4>
               
               {/* Original Price */}
               <p className="text-muted-foreground line-through text-base">R$2.691,00</p>
               
               {/* Current Price */}
-              <p className="text-foreground my-2">
-                <span className="text-5xl font-display font-bold text-accent">R$97</span>
-                <span className="text-lg text-muted-foreground">/3 meses</span>
+              <p className="my-2">
+                <span className="text-5xl font-display font-bold text-primary">R$97</span>
+                <span className="text-lg text-foreground">/3 meses</span>
               </p>
               
               {/* Per month breakdown */}
@@ -100,7 +112,7 @@ const PricingSection = () => {
             </div>
 
             {/* Benefits */}
-            <ul className="mt-8 space-y-4">
+            <ul className="mt-8 space-y-3">
               {benefits.map((benefit) => (
                 <li key={benefit} className="flex items-center gap-3 text-sm text-muted-foreground">
                   <Check className="w-5 h-5 text-primary flex-shrink-0" />
@@ -110,7 +122,11 @@ const PricingSection = () => {
             </ul>
 
             {/* CTA */}
-            <Button variant="hero" size="lg" className="w-full mt-8 bg-primary hover:bg-primary/90 text-primary-foreground font-display font-bold">
+            <Button 
+              variant="default" 
+              size="lg" 
+              className="w-full mt-8 bg-primary hover:bg-primary/90 text-primary-foreground font-display font-bold text-lg py-6"
+            >
               ASSINAR AGORA
             </Button>
 
