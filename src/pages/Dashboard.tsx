@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Tv, LogOut, Eye, EyeOff, Copy, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Tv, LogOut, Eye, EyeOff, Copy, Loader2, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
 
 type StreamingStatus = 'online' | 'maintenance';
 
@@ -16,13 +15,9 @@ interface Platform {
   icon_url: string | null;
   cover_image_url: string | null;
   status: StreamingStatus;
-}
-
-interface Credential {
-  id: string;
-  platform_id: string;
-  login: string;
-  password: string;
+  login: string | null;
+  password: string | null;
+  website_url: string | null;
 }
 
 const platformIcons: Record<string, string> = {
@@ -36,7 +31,6 @@ const platformIcons: Record<string, string> = {
 
 export default function Dashboard() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [credentials, setCredentials] = useState<Credential[]>([]);
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -58,13 +52,12 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [platformsRes, credentialsRes] = await Promise.all([
-      supabase.from('streaming_platforms').select('*').order('name'),
-      supabase.from('streaming_credentials').select('*'),
-    ]);
+    const { data } = await supabase
+      .from('streaming_platforms')
+      .select('*')
+      .order('name');
 
-    if (platformsRes.data) setPlatforms(platformsRes.data as Platform[]);
-    if (credentialsRes.data) setCredentials(credentialsRes.data);
+    if (data) setPlatforms(data as Platform[]);
     setLoading(false);
   };
 
@@ -73,14 +66,10 @@ export default function Dashboard() {
     navigate('/auth');
   };
 
-  const getCredentialForPlatform = (platformId: string) => {
-    return credentials.find(c => c.platform_id === platformId);
-  };
-
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({
-      title: 'Copiado!',
+      title: '✅ Copiado!',
       description: `${label} copiado para a área de transferência`,
     });
   };
@@ -92,10 +81,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  const selectedCredential = selectedPlatform 
-    ? getCredentialForPlatform(selectedPlatform.id) 
-    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -148,7 +133,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {platforms.map((platform) => {
-            const hasCredential = !!getCredentialForPlatform(platform.id);
+            const hasCredential = !!(platform.login && platform.password);
             const isMaintenance = platform.status === 'maintenance';
             
             return (
@@ -241,13 +226,13 @@ export default function Dashboard() {
             </DialogTitle>
           </DialogHeader>
           
-          {selectedCredential ? (
+          {selectedPlatform?.login && selectedPlatform?.password ? (
             <div className="space-y-4 mt-4">
               {/* Copy All Button */}
               <Button
                 className="w-full"
                 onClick={() => {
-                  navigator.clipboard.writeText(`Login: ${selectedCredential.login}\nSenha: ${selectedCredential.password}`);
+                  navigator.clipboard.writeText(`Login: ${selectedPlatform.login}\nSenha: ${selectedPlatform.password}`);
                   toast({
                     title: '✅ Copiado!',
                     description: 'Login e senha copiados para a área de transferência',
@@ -263,14 +248,14 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2">
                   <div 
                     className="flex-1 bg-background/50 border border-border rounded-md px-3 py-2 text-foreground cursor-pointer hover:bg-background/70 transition-colors"
-                    onClick={() => copyToClipboard(selectedCredential.login, 'Login')}
+                    onClick={() => copyToClipboard(selectedPlatform.login!, 'Login')}
                   >
-                    {selectedCredential.login}
+                    {selectedPlatform.login}
                   </div>
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => copyToClipboard(selectedCredential.login, 'Login')}
+                    onClick={() => copyToClipboard(selectedPlatform.login!, 'Login')}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
@@ -282,9 +267,9 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2">
                   <div 
                     className="flex-1 bg-background/50 border border-border rounded-md px-3 py-2 text-foreground font-mono cursor-pointer hover:bg-background/70 transition-colors"
-                    onClick={() => copyToClipboard(selectedCredential.password, 'Senha')}
+                    onClick={() => copyToClipboard(selectedPlatform.password!, 'Senha')}
                   >
-                    {showPassword ? selectedCredential.password : '••••••••'}
+                    {showPassword ? selectedPlatform.password : '••••••••'}
                   </div>
                   <Button
                     variant="outline"
@@ -296,12 +281,24 @@ export default function Dashboard() {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => copyToClipboard(selectedCredential.password, 'Senha')}
+                    onClick={() => copyToClipboard(selectedPlatform.password!, 'Senha')}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
+
+              {/* Website Link */}
+              {selectedPlatform.website_url && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => window.open(selectedPlatform.website_url!, '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Abrir Site
+                </Button>
+              )}
             </div>
           ) : (
             <p className="text-muted-foreground">

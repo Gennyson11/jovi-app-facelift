@@ -55,27 +55,36 @@ export type Database = {
           created_at: string
           icon_url: string | null
           id: string
+          login: string | null
           name: string
+          password: string | null
           status: Database["public"]["Enums"]["streaming_status"]
           updated_at: string
+          website_url: string | null
         }
         Insert: {
           cover_image_url?: string | null
           created_at?: string
           icon_url?: string | null
           id?: string
+          login?: string | null
           name: string
+          password?: string | null
           status?: Database["public"]["Enums"]["streaming_status"]
           updated_at?: string
+          website_url?: string | null
         }
         Update: {
           cover_image_url?: string | null
           created_at?: string
           icon_url?: string | null
           id?: string
+          login?: string | null
           name?: string
+          password?: string | null
           status?: Database["public"]["Enums"]["streaming_status"]
           updated_at?: string
+          website_url?: string | null
         }
         Relationships: []
       }

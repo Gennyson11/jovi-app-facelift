@@ -7,10 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
 
 type StreamingStatus = 'online' | 'maintenance';
 
@@ -20,19 +19,13 @@ interface Platform {
   icon_url: string | null;
   cover_image_url: string | null;
   status: StreamingStatus;
-}
-
-interface Credential {
-  id: string;
-  platform_id: string;
-  login: string;
-  password: string;
-  platform?: Platform;
+  login: string | null;
+  password: string | null;
+  website_url: string | null;
 }
 
 export default function Admin() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   
@@ -42,15 +35,11 @@ export default function Admin() {
   const [platformName, setPlatformName] = useState('');
   const [platformStatus, setPlatformStatus] = useState<StreamingStatus>('online');
   const [platformCoverUrl, setPlatformCoverUrl] = useState('');
+  const [platformLogin, setPlatformLogin] = useState('');
+  const [platformPassword, setPlatformPassword] = useState('');
+  const [platformWebsiteUrl, setPlatformWebsiteUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Credential Dialog
-  const [credentialDialogOpen, setCredentialDialogOpen] = useState(false);
-  const [editingCredential, setEditingCredential] = useState<Credential | null>(null);
-  const [credentialPlatformId, setCredentialPlatformId] = useState('');
-  const [credentialLogin, setCredentialLogin] = useState('');
-  const [credentialPassword, setCredentialPassword] = useState('');
   
   const { user, isAdmin, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -74,13 +63,12 @@ export default function Admin() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [platformsRes, credentialsRes] = await Promise.all([
-      supabase.from('streaming_platforms').select('*').order('name'),
-      supabase.from('streaming_credentials').select('*, platform:streaming_platforms(*)'),
-    ]);
+    const { data } = await supabase
+      .from('streaming_platforms')
+      .select('*')
+      .order('name');
 
-    if (platformsRes.data) setPlatforms(platformsRes.data as Platform[]);
-    if (credentialsRes.data) setCredentials(credentialsRes.data as Credential[]);
+    if (data) setPlatforms(data as Platform[]);
     setLoading(false);
   };
 
@@ -129,11 +117,17 @@ export default function Admin() {
       setPlatformName(platform.name);
       setPlatformStatus(platform.status || 'online');
       setPlatformCoverUrl(platform.cover_image_url || '');
+      setPlatformLogin(platform.login || '');
+      setPlatformPassword(platform.password || '');
+      setPlatformWebsiteUrl(platform.website_url || '');
     } else {
       setEditingPlatform(null);
       setPlatformName('');
       setPlatformStatus('online');
       setPlatformCoverUrl('');
+      setPlatformLogin('');
+      setPlatformPassword('');
+      setPlatformWebsiteUrl('');
     }
     setPlatformDialogOpen(true);
   };
@@ -148,6 +142,9 @@ export default function Admin() {
       name: platformName,
       status: platformStatus,
       cover_image_url: platformCoverUrl || null,
+      login: platformLogin || null,
+      password: platformPassword || null,
+      website_url: platformWebsiteUrl || null,
     };
 
     if (editingPlatform) {
@@ -184,73 +181,6 @@ export default function Admin() {
       return;
     }
     toast({ title: 'Sucesso', description: 'Plataforma deletada' });
-    fetchData();
-  };
-
-  // Credential CRUD
-  const openCredentialDialog = (credential?: Credential) => {
-    if (credential) {
-      setEditingCredential(credential);
-      setCredentialPlatformId(credential.platform_id);
-      setCredentialLogin(credential.login);
-      setCredentialPassword(credential.password);
-    } else {
-      setEditingCredential(null);
-      setCredentialPlatformId(platforms[0]?.id || '');
-      setCredentialLogin('');
-      setCredentialPassword('');
-    }
-    setCredentialDialogOpen(true);
-  };
-
-  const saveCredential = async () => {
-    if (!credentialPlatformId || !credentialLogin.trim() || !credentialPassword.trim()) {
-      toast({ title: 'Erro', description: 'Todos os campos são obrigatórios', variant: 'destructive' });
-      return;
-    }
-
-    if (editingCredential) {
-      const { error } = await supabase
-        .from('streaming_credentials')
-        .update({ 
-          platform_id: credentialPlatformId,
-          login: credentialLogin, 
-          password: credentialPassword 
-        })
-        .eq('id', editingCredential.id);
-      
-      if (error) {
-        toast({ title: 'Erro', description: 'Falha ao atualizar credencial', variant: 'destructive' });
-        return;
-      }
-      toast({ title: 'Sucesso', description: 'Credencial atualizada' });
-    } else {
-      const { error } = await supabase
-        .from('streaming_credentials')
-        .insert({ 
-          platform_id: credentialPlatformId,
-          login: credentialLogin, 
-          password: credentialPassword 
-        });
-      
-      if (error) {
-        toast({ title: 'Erro', description: 'Falha ao criar credencial', variant: 'destructive' });
-        return;
-      }
-      toast({ title: 'Sucesso', description: 'Credencial criada' });
-    }
-
-    setCredentialDialogOpen(false);
-    fetchData();
-  };
-
-  const deleteCredential = async (id: string) => {
-    const { error } = await supabase.from('streaming_credentials').delete().eq('id', id);
-    if (error) {
-      toast({ title: 'Erro', description: 'Falha ao deletar credencial', variant: 'destructive' });
-      return;
-    }
-    toast({ title: 'Sucesso', description: 'Credencial deletada' });
     fetchData();
   };
 
@@ -296,173 +226,132 @@ export default function Admin() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <Tabs defaultValue="credentials" className="space-y-6">
-          <TabsList className="bg-card border border-border">
-            <TabsTrigger value="credentials">Credenciais</TabsTrigger>
-            <TabsTrigger value="platforms">Plataformas</TabsTrigger>
-          </TabsList>
-
-          {/* Credentials Tab */}
-          <TabsContent value="credentials">
-            <Card className="border-border">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-foreground">Credenciais de Streaming</CardTitle>
-                <Button onClick={() => openCredentialDialog()} size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Credencial
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Plataforma</TableHead>
-                      <TableHead>Login</TableHead>
-                      <TableHead>Senha</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {credentials.map((credential) => (
-                      <TableRow key={credential.id}>
-                        <TableCell className="font-medium">
-                          {credential.platform?.name || 'N/A'}
-                        </TableCell>
-                        <TableCell>{credential.login}</TableCell>
-                        <TableCell className="font-mono">
+        <Card className="border-border">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-foreground">Plataformas de Streaming</CardTitle>
+            <Button onClick={() => openPlatformDialog()} size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Plataforma
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Capa</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Login</TableHead>
+                    <TableHead>Senha</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Link</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {platforms.map((platform) => (
+                    <TableRow key={platform.id}>
+                      <TableCell>
+                        {platform.cover_image_url ? (
+                          <img 
+                            src={platform.cover_image_url} 
+                            alt={platform.name}
+                            className="w-16 h-10 object-cover rounded-md"
+                          />
+                        ) : (
+                          <div className="w-16 h-10 bg-muted rounded-md flex items-center justify-center">
+                            <Image className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{platform.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {platform.login || '-'}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {platform.password ? (
                           <div className="flex items-center gap-2">
-                            {showPasswords[credential.id] ? credential.password : '••••••••'}
+                            {showPasswords[platform.id] ? platform.password : '••••••••'}
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6"
-                              onClick={() => togglePasswordVisibility(credential.id)}
+                              onClick={() => togglePasswordVisibility(platform.id)}
                             >
-                              {showPasswords[credential.id] ? (
+                              {showPasswords[platform.id] ? (
                                 <EyeOff className="w-3 h-3" />
                               ) : (
                                 <Eye className="w-3 h-3" />
                               )}
                             </Button>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openCredentialDialog(credential)}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => deleteCredential(credential.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {credentials.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                          Nenhuma credencial cadastrada
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Platforms Tab */}
-          <TabsContent value="platforms">
-            <Card className="border-border">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-foreground">Plataformas de Streaming</CardTitle>
-                <Button onClick={() => openPlatformDialog()} size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Plataforma
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Capa</TableHead>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {platforms.map((platform) => (
-                      <TableRow key={platform.id}>
-                        <TableCell>
-                          {platform.cover_image_url ? (
-                            <img 
-                              src={platform.cover_image_url} 
-                              alt={platform.name}
-                              className="w-12 h-12 object-cover rounded-md"
-                            />
+                        ) : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                          platform.status === 'online' 
+                            ? 'bg-green-500/10 text-green-500' 
+                            : 'bg-yellow-500/10 text-yellow-500'
+                        }`}>
+                          {platform.status === 'online' ? (
+                            <CheckCircle className="w-3 h-3" />
                           ) : (
-                            <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
-                              <Image className="w-5 h-5 text-muted-foreground" />
-                            </div>
+                            <AlertTriangle className="w-3 h-3" />
                           )}
-                        </TableCell>
-                        <TableCell className="font-medium">{platform.name}</TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                            platform.status === 'online' 
-                              ? 'bg-green-500/10 text-green-500' 
-                              : 'bg-yellow-500/10 text-yellow-500'
-                          }`}>
-                            {platform.status === 'online' ? (
-                              <CheckCircle className="w-3 h-3" />
-                            ) : (
-                              <AlertTriangle className="w-3 h-3" />
-                            )}
-                            {platform.status === 'online' ? 'Online' : 'Manutenção'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openPlatformDialog(platform)}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => deletePlatform(platform.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                          {platform.status === 'online' ? 'Online' : 'Manutenção'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {platform.website_url ? (
+                          <a 
+                            href={platform.website_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline inline-flex items-center gap-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Abrir
+                          </a>
+                        ) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openPlatformDialog(platform)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => deletePlatform(platform.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {platforms.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        Nenhuma plataforma cadastrada
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </main>
 
       {/* Platform Dialog */}
       <Dialog open={platformDialogOpen} onOpenChange={setPlatformDialogOpen}>
-        <DialogContent className="bg-card border-border max-w-md">
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               {editingPlatform ? 'Editar Plataforma' : 'Nova Plataforma'}
@@ -470,12 +359,46 @@ export default function Admin() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="platform-name">Nome</Label>
+              <Label htmlFor="platform-name">Nome da Streaming *</Label>
               <Input
                 id="platform-name"
                 value={platformName}
                 onChange={(e) => setPlatformName(e.target.value)}
                 placeholder="Ex: Netflix"
+                className="bg-background/50 border-border"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="platform-login">Login</Label>
+                <Input
+                  id="platform-login"
+                  value={platformLogin}
+                  onChange={(e) => setPlatformLogin(e.target.value)}
+                  placeholder="Email ou usuário"
+                  className="bg-background/50 border-border"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="platform-password">Senha</Label>
+                <Input
+                  id="platform-password"
+                  value={platformPassword}
+                  onChange={(e) => setPlatformPassword(e.target.value)}
+                  placeholder="Senha"
+                  className="bg-background/50 border-border"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="platform-website">Link do Site</Label>
+              <Input
+                id="platform-website"
+                value={platformWebsiteUrl}
+                onChange={(e) => setPlatformWebsiteUrl(e.target.value)}
+                placeholder="https://www.netflix.com"
                 className="bg-background/50 border-border"
               />
             </div>
@@ -542,63 +465,6 @@ export default function Admin() {
               Cancelar
             </Button>
             <Button onClick={savePlatform}>
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Credential Dialog */}
-      <Dialog open={credentialDialogOpen} onOpenChange={setCredentialDialogOpen}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">
-              {editingCredential ? 'Editar Credencial' : 'Nova Credencial'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="credential-platform">Plataforma</Label>
-              <select
-                id="credential-platform"
-                value={credentialPlatformId}
-                onChange={(e) => setCredentialPlatformId(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background text-foreground"
-              >
-                {platforms.map((platform) => (
-                  <option key={platform.id} value={platform.id}>
-                    {platform.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="credential-login">Login</Label>
-              <Input
-                id="credential-login"
-                value={credentialLogin}
-                onChange={(e) => setCredentialLogin(e.target.value)}
-                placeholder="Email ou usuário"
-                className="bg-background/50 border-border"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="credential-password">Senha</Label>
-              <Input
-                id="credential-password"
-                type="text"
-                value={credentialPassword}
-                onChange={(e) => setCredentialPassword(e.target.value)}
-                placeholder="Senha"
-                className="bg-background/50 border-border"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCredentialDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={saveCredential}>
               Salvar
             </Button>
           </DialogFooter>
