@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Tv, LogOut, Eye, EyeOff, Copy, Loader2, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link } from 'lucide-react';
+import { Tv, LogOut, Eye, EyeOff, Copy, Loader2, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Lock } from 'lucide-react';
 
 type StreamingStatus = 'online' | 'maintenance';
 type AccessType = 'credentials' | 'link_only';
@@ -22,6 +22,14 @@ interface Platform {
   website_url: string | null;
 }
 
+interface UserProfile {
+  id: string;
+  user_id: string;
+  email: string;
+  name: string | null;
+  has_access: boolean;
+}
+
 const platformIcons: Record<string, string> = {
   'Netflix': '🎬',
   'Amazon Prime Video': '📦',
@@ -36,7 +44,8 @@ export default function Dashboard() {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { user, signOut, loading: authLoading } = useAuth();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { user, signOut, loading: authLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -54,12 +63,24 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data } = await supabase
+    
+    // Fetch platforms
+    const { data: platformsData } = await supabase
       .from('streaming_platforms')
       .select('*')
       .order('name');
 
-    if (data) setPlatforms(data as Platform[]);
+    if (platformsData) setPlatforms(platformsData as Platform[]);
+
+    // Fetch user profile to check access
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user?.id)
+      .maybeSingle();
+
+    if (profileData) setUserProfile(profileData as UserProfile);
+    
     setLoading(false);
   };
 
@@ -77,8 +98,17 @@ export default function Dashboard() {
   };
 
   const handlePlatformClick = (platform: Platform) => {
+    // Check if user has access (admins always have access)
+    if (!isAdmin && !userProfile?.has_access) {
+      toast({
+        title: '🔒 Acesso Bloqueado',
+        description: 'Seu acesso ainda não foi liberado pelo administrador.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const isMaintenance = platform.status === 'maintenance';
-    
     if (isMaintenance) return;
 
     if (platform.access_type === 'link_only' && platform.website_url) {
@@ -96,6 +126,8 @@ export default function Dashboard() {
     );
   }
 
+  const hasAccess = isAdmin || userProfile?.has_access;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Header */}
@@ -105,9 +137,16 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Tv className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-xl font-display font-bold text-foreground">
-              Jovitools Streamings
-            </h1>
+            <div>
+              <h1 className="text-xl font-display font-bold text-foreground">
+                Jovitools Streamings
+              </h1>
+              {userProfile && (
+                <p className="text-xs text-muted-foreground">
+                  Olá, {userProfile.name || userProfile.email}
+                </p>
+              )}
+            </div>
           </div>
           <Button 
             variant="outline" 
@@ -123,45 +162,68 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
+        {/* Access Blocked Banner */}
+        {!hasAccess && (
+          <div className="mb-6 p-6 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-center">
+            <Lock className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-yellow-500 mb-2">
+              Acesso Pendente
+            </h3>
+            <p className="text-yellow-500/80">
+              Seu cadastro foi recebido! Aguarde a liberação do acesso pelo administrador.
+            </p>
+          </div>
+        )}
+
         {/* Warning Banner */}
-        <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-sm">
-          <p className="text-destructive font-medium">
-            ⚠️ ATENÇÃO: É proibido revender ou compartilhar este acesso.
-          </p>
-          <p className="text-destructive/80 mt-1">
-            🔍 Todos os acessos são monitorados e o IP é rastreável.
-          </p>
-          <p className="text-destructive/80 mt-1">
-            ❌ Qualquer compartilhamento resultará na perda imediata do acesso.
-          </p>
-        </div>
+        {hasAccess && (
+          <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-sm">
+            <p className="text-destructive font-medium">
+              ⚠️ ATENÇÃO: É proibido revender ou compartilhar este acesso.
+            </p>
+            <p className="text-destructive/80 mt-1">
+              🔍 Todos os acessos são monitorados e o IP é rastreável.
+            </p>
+            <p className="text-destructive/80 mt-1">
+              ❌ Qualquer compartilhamento resultará na perda imediata do acesso.
+            </p>
+          </div>
+        )}
 
         <div className="mb-8">
           <h2 className="text-2xl font-display font-bold text-foreground mb-2">
             Plataformas de Streaming
           </h2>
           <p className="text-muted-foreground">
-            Clique em uma plataforma para visualizar as credenciais ou acessar o link
+            {hasAccess 
+              ? 'Clique em uma plataforma para visualizar as credenciais ou acessar o link'
+              : 'As plataformas estarão disponíveis após a liberação do seu acesso'
+            }
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {platforms.map((platform) => {
-            const hasAccess = platform.access_type === 'link_only' 
+            const hasPlatformAccess = platform.access_type === 'link_only' 
               ? !!platform.website_url 
               : !!(platform.login && platform.password);
             const isMaintenance = platform.status === 'maintenance';
+            const isBlocked = !hasAccess;
             
             return (
               <div 
                 key={platform.id}
                 className={`group cursor-pointer transition-all duration-300 ${
-                  !hasAccess || isMaintenance ? 'opacity-60' : ''
+                  !hasPlatformAccess || isMaintenance || isBlocked ? 'opacity-60' : ''
                 }`}
                 onClick={() => handlePlatformClick(platform)}
               >
                 {/* Card Container */}
-                <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300">
+                <div className={`bg-card border border-border rounded-xl overflow-hidden transition-all duration-300 ${
+                  isBlocked 
+                    ? 'grayscale' 
+                    : 'hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10'
+                }`}>
                   {/* Cover Image Area */}
                   <div className="relative aspect-video bg-gradient-to-br from-secondary to-background">
                     {platform.cover_image_url ? (
@@ -176,18 +238,27 @@ export default function Dashboard() {
                       </div>
                     )}
 
+                    {/* Blocked Overlay */}
+                    {isBlocked && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <Lock className="w-12 h-12 text-white/80" />
+                      </div>
+                    )}
+
                     {/* Access Type Badge */}
-                    <div className={`absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm ${
-                      platform.access_type === 'credentials' 
-                        ? 'bg-primary/20 text-primary border border-primary/30' 
-                        : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                    }`}>
-                      {platform.access_type === 'credentials' ? (
-                        <KeyRound className="w-3 h-3" />
-                      ) : (
-                        <Link className="w-3 h-3" />
-                      )}
-                    </div>
+                    {!isBlocked && (
+                      <div className={`absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm ${
+                        platform.access_type === 'credentials' 
+                          ? 'bg-primary/20 text-primary border border-primary/30' 
+                          : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                      }`}>
+                        {platform.access_type === 'credentials' ? (
+                          <KeyRound className="w-3 h-3" />
+                        ) : (
+                          <Link className="w-3 h-3" />
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Status Bar - Below Image */}
@@ -211,17 +282,19 @@ export default function Dashboard() {
                         {platform.name}
                       </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {isMaintenance 
-                          ? 'Em manutenção' 
-                          : hasAccess 
-                            ? platform.access_type === 'link_only' 
-                              ? 'Clique para acessar' 
-                              : 'Clique para ver credencial'
-                            : 'Sem acesso configurado'
+                        {isBlocked 
+                          ? 'Acesso bloqueado'
+                          : isMaintenance 
+                            ? 'Em manutenção' 
+                            : hasPlatformAccess 
+                              ? platform.access_type === 'link_only' 
+                                ? 'Clique para acessar' 
+                                : 'Clique para ver credencial'
+                              : 'Sem acesso configurado'
                         }
                       </p>
                     </div>
-                    {hasAccess && !isMaintenance && (
+                    {!isBlocked && hasPlatformAccess && !isMaintenance && (
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                         {platform.access_type === 'link_only' ? (
                           <ExternalLink className="w-5 h-5 text-primary" />

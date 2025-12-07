@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link } from 'lucide-react';
+import { LogOut, Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Shield, Upload, Image, CheckCircle, AlertTriangle, ExternalLink, KeyRound, Link, Users, UserCheck, UserX } from 'lucide-react';
 
 type StreamingStatus = 'online' | 'maintenance';
 type AccessType = 'credentials' | 'link_only';
@@ -26,8 +27,18 @@ interface Platform {
   website_url: string | null;
 }
 
+interface UserProfile {
+  id: string;
+  user_id: string;
+  email: string;
+  name: string | null;
+  has_access: boolean;
+  created_at: string;
+}
+
 export default function Admin() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   
@@ -66,18 +77,38 @@ export default function Admin() {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('streaming_platforms')
-      .select('*')
-      .order('name');
+    const [platformsRes, usersRes] = await Promise.all([
+      supabase.from('streaming_platforms').select('*').order('name'),
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+    ]);
 
-    if (data) setPlatforms(data as Platform[]);
+    if (platformsRes.data) setPlatforms(platformsRes.data as Platform[]);
+    if (usersRes.data) setUsers(usersRes.data as UserProfile[]);
     setLoading(false);
   };
 
   const handleLogout = async () => {
     await signOut();
     navigate('/auth');
+  };
+
+  // Toggle user access
+  const toggleUserAccess = async (userId: string, currentAccess: boolean) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ has_access: !currentAccess })
+      .eq('id', userId);
+
+    if (error) {
+      toast({ title: 'Erro', description: 'Falha ao atualizar acesso', variant: 'destructive' });
+      return;
+    }
+
+    toast({ 
+      title: 'Sucesso', 
+      description: currentAccess ? 'Acesso bloqueado' : 'Acesso liberado' 
+    });
+    fetchData();
   };
 
   // Image upload
@@ -207,6 +238,9 @@ export default function Admin() {
     );
   }
 
+  const usersWithAccess = users.filter(u => u.has_access).length;
+  const usersWithoutAccess = users.filter(u => !u.has_access).length;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Header */}
@@ -237,146 +271,288 @@ export default function Admin() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-foreground">Plataformas de Streaming</CardTitle>
-            <Button onClick={() => openPlatformDialog()} size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Plataforma
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Capa</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Login/Link</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {platforms.map((platform) => (
-                    <TableRow key={platform.id}>
-                      <TableCell>
-                        {platform.cover_image_url ? (
-                          <img 
-                            src={platform.cover_image_url} 
-                            alt={platform.name}
-                            className="w-16 h-10 object-cover rounded-md"
-                          />
-                        ) : (
-                          <div className="w-16 h-10 bg-muted rounded-md flex items-center justify-center">
-                            <Image className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">{platform.name}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
-                          platform.access_type === 'credentials' 
-                            ? 'bg-primary/10 text-primary' 
-                            : 'bg-purple-500/10 text-purple-400'
-                        }`}>
-                          {platform.access_type === 'credentials' ? (
-                            <>
-                              <KeyRound className="w-3 h-3" />
-                              Login/Senha
-                            </>
-                          ) : (
-                            <>
-                              <Link className="w-3 h-3" />
-                              Apenas Link
-                            </>
-                          )}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {platform.access_type === 'credentials' ? (
-                          <div className="space-y-1">
-                            <p className="text-muted-foreground">{platform.login || '-'}</p>
-                            {platform.password && (
-                              <div className="flex items-center gap-1 font-mono text-xs">
-                                {showPasswords[platform.id] ? platform.password : '••••••••'}
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() => togglePasswordVisibility(platform.id)}
-                                >
-                                  {showPasswords[platform.id] ? (
-                                    <EyeOff className="w-3 h-3" />
-                                  ) : (
-                                    <Eye className="w-3 h-3" />
-                                  )}
-                                </Button>
+        <Tabs defaultValue="platforms" className="space-y-6">
+          <TabsList className="bg-card border border-border">
+            <TabsTrigger value="platforms" className="gap-2">
+              <Image className="w-4 h-4" />
+              Plataformas
+            </TabsTrigger>
+            <TabsTrigger value="users" className="gap-2">
+              <Users className="w-4 h-4" />
+              Usuários ({users.length})
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Platforms Tab */}
+          <TabsContent value="platforms">
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-foreground">Plataformas de Streaming</CardTitle>
+                <Button onClick={() => openPlatformDialog()} size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Plataforma
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Capa</TableHead>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Login/Link</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {platforms.map((platform) => (
+                        <TableRow key={platform.id}>
+                          <TableCell>
+                            {platform.cover_image_url ? (
+                              <img 
+                                src={platform.cover_image_url} 
+                                alt={platform.name}
+                                className="w-16 h-10 object-cover rounded-md"
+                              />
+                            ) : (
+                              <div className="w-16 h-10 bg-muted rounded-md flex items-center justify-center">
+                                <Image className="w-5 h-5 text-muted-foreground" />
                               </div>
                             )}
-                          </div>
-                        ) : (
-                          platform.website_url ? (
-                            <a 
-                              href={platform.website_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline inline-flex items-center gap-1"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              Abrir
-                            </a>
-                          ) : '-'
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                          platform.status === 'online' 
-                            ? 'bg-green-500/10 text-green-500' 
-                            : 'bg-yellow-500/10 text-yellow-500'
-                        }`}>
-                          {platform.status === 'online' ? (
-                            <CheckCircle className="w-3 h-3" />
-                          ) : (
-                            <AlertTriangle className="w-3 h-3" />
-                          )}
-                          {platform.status === 'online' ? 'Online' : 'Manutenção'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openPlatformDialog(platform)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => deletePlatform(platform.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {platforms.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                        Nenhuma plataforma cadastrada
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                          </TableCell>
+                          <TableCell className="font-medium">{platform.name}</TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                              platform.access_type === 'credentials' 
+                                ? 'bg-primary/10 text-primary' 
+                                : 'bg-purple-500/10 text-purple-400'
+                            }`}>
+                              {platform.access_type === 'credentials' ? (
+                                <>
+                                  <KeyRound className="w-3 h-3" />
+                                  Login/Senha
+                                </>
+                              ) : (
+                                <>
+                                  <Link className="w-3 h-3" />
+                                  Apenas Link
+                                </>
+                              )}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {platform.access_type === 'credentials' ? (
+                              <div className="space-y-1">
+                                <p className="text-muted-foreground">{platform.login || '-'}</p>
+                                {platform.password && (
+                                  <div className="flex items-center gap-1 font-mono text-xs">
+                                    {showPasswords[platform.id] ? platform.password : '••••••••'}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5"
+                                      onClick={() => togglePasswordVisibility(platform.id)}
+                                    >
+                                      {showPasswords[platform.id] ? (
+                                        <EyeOff className="w-3 h-3" />
+                                      ) : (
+                                        <Eye className="w-3 h-3" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              platform.website_url ? (
+                                <a 
+                                  href={platform.website_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline inline-flex items-center gap-1"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  Abrir
+                                </a>
+                              ) : '-'
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                              platform.status === 'online' 
+                                ? 'bg-green-500/10 text-green-500' 
+                                : 'bg-yellow-500/10 text-yellow-500'
+                            }`}>
+                              {platform.status === 'online' ? (
+                                <CheckCircle className="w-3 h-3" />
+                              ) : (
+                                <AlertTriangle className="w-3 h-3" />
+                              )}
+                              {platform.status === 'online' ? 'Online' : 'Manutenção'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openPlatformDialog(platform)}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => deletePlatform(platform.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {platforms.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                            Nenhuma plataforma cadastrada
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card className="border-border">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{users.length}</p>
+                      <p className="text-sm text-muted-foreground">Total de Usuários</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                      <UserCheck className="w-6 h-6 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{usersWithAccess}</p>
+                      <p className="text-sm text-muted-foreground">Com Acesso</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                      <UserX className="w-6 h-6 text-red-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{usersWithoutAccess}</p>
+                      <p className="text-sm text-muted-foreground">Sem Acesso</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="text-foreground">Gerenciar Usuários</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Cadastro</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ação</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((userProfile) => (
+                        <TableRow key={userProfile.id}>
+                          <TableCell className="font-medium">
+                            {userProfile.name || '-'}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {userProfile.email}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(userProfile.created_at).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                              userProfile.has_access 
+                                ? 'bg-green-500/10 text-green-500' 
+                                : 'bg-red-500/10 text-red-500'
+                            }`}>
+                              {userProfile.has_access ? (
+                                <>
+                                  <UserCheck className="w-3 h-3" />
+                                  Liberado
+                                </>
+                              ) : (
+                                <>
+                                  <UserX className="w-3 h-3" />
+                                  Bloqueado
+                                </>
+                              )}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant={userProfile.has_access ? "destructive" : "default"}
+                              size="sm"
+                              onClick={() => toggleUserAccess(userProfile.id, userProfile.has_access)}
+                            >
+                              {userProfile.has_access ? (
+                                <>
+                                  <UserX className="w-4 h-4 mr-2" />
+                                  Bloquear
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="w-4 h-4 mr-2" />
+                                  Liberar
+                                </>
+                              )}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {users.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            Nenhum usuário cadastrado
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Platform Dialog */}
